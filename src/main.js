@@ -13,6 +13,7 @@ import { Game } from './engine/game.js';
 import { AutoDrop } from './engine/autodrop.js';
 import { Board } from './ui/board.js';
 import { attachDrag } from './ui/drag.js';
+import { createSelect } from './ui/select.js';
 import {
     saveGame, loadGame, clearGame, getStats, recordResult, getSettings, setSettings,
 } from './storage.js';
@@ -50,6 +51,7 @@ const $ = id => document.getElementById(id);
 
 let game = null;
 let board = null;
+let gameSelect = null;
 let autodrop = null;
 let unsubscribe = null;
 let winTimer = null;
@@ -230,7 +232,7 @@ function scoreBox() {
 function updateUi() {
     const def = game.def;
     document.title = `${def.name} – KPat Web`;
-    $('game-select').value = def.id;
+    gameSelect.setValue(def.id);
     $('moves').textContent = String(game.moves);
     $('seed').textContent = '#' + game.seed;
 
@@ -352,15 +354,12 @@ function initFullscreen() {
 /* ---------- initialization ---------- */
 
 function init() {
-    const select = $('game-select');
-    for (const g of GAMES) {
-        const o = document.createElement('option');
-        o.value = g.id;
-        o.textContent = g.name;
-        select.appendChild(o);
-    }
+    gameSelect = createSelect(
+        $('game-select'),
+        GAMES.map(g => ({ id: g.id, name: g.name })),
+        id => openGame(byId(id))
+    );
 
-    select.addEventListener('change', () => openGame(byId(select.value)));
     $('btn-new').addEventListener('click', () => newDeal());
     $('btn-restart').addEventListener('click', () => { clearGame(game.def.id); game.restart(); });
     $('btn-seed').addEventListener('click', askSeed);

@@ -1,14 +1,15 @@
 /*
- * kpat-web – webová verze KPatience (kpat)
- * Odvozeno z KDE KPatience: https://github.com/KDE/kpat
+ * kpat-web – a web version of KPatience (kpat)
+ * Derived from KDE KPatience: https://github.com/KDE/kpat
  *
- * Tento program je svobodný software; můžete jej šířit a/nebo upravovat
- * podle podmínek GNU General Public License, vydané Free Software Foundation,
- * a to buď ve verzi 2, nebo (podle vašeho uvážení) kterékoli pozdější verze.
- * Program je šířen BEZ JAKÉKOLI ZÁRUKY. Viz soubor LICENSE.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 2, or (at your option) any
+ * later version. This program is distributed WITHOUT ANY WARRANTY.
+ * See the LICENSE file.
  */
 
-/* Šířka karty je registrovaná vlastnost, takže se dá plynule animovat. */
+/* Card width is a registered custom property so it can be animated smoothly. */
 @property --cw {
     syntax: '<length>';
     inherits: true;
@@ -16,28 +17,48 @@
 }
 
 :root {
-    --felt: #1b6b3a;
-    --felt-dark: #0f4a27;
-    --ink: #1a1a1a;
-    --red: #c62828;
-    --joker: #7b1fa2;
-    --card-bg: #fafafa;
-    --card-border: #b9b9b9;
-    --accent: #ffd54f;
-    --panel: #12301f;
-    --panel-text: #f1f8f3;
+    /* table */
+    --felt: #1e7a4a;
+    --felt-dark: #04140c;
+
+    /* card face */
+    --ink: #1c1c1e;
+    --red: #ff3b30;
+    --joker: #af52de;
+    --card-bg: #ffffff;
+    --card-border: rgba(0, 0, 0, .08);
+
+    /* system accents */
+    --tint: #0a84ff;
+    --tint-ink: #ffffff;
+    --hint: #ffd60a;
+    --good: #30d158;
+    --bad: #ff453a;
+
+    /* chrome (always a dark glass, regardless of card color scheme) */
+    --panel: rgba(28, 28, 30, .6);
+    --panel-border: rgba(255, 255, 255, .08);
+    --panel-text: #f5f5f7;
+    --panel-text-dim: rgba(245, 245, 247, .56);
+    --control: rgba(255, 255, 255, .09);
+    --control-hover: rgba(255, 255, 255, .16);
+    --control-press: rgba(255, 255, 255, .22);
+
+    --blur: blur(26px) saturate(180%);
     --ease: cubic-bezier(.22, 1, .36, 1);
+    --radius: 14px;
+
     color-scheme: dark;
 }
 
-/* tmavý režim prohlížeče/systému: karty dostanou temný lícový podklad */
+/* browser/system dark mode: give cards a dark face instead of white */
 @media (prefers-color-scheme: dark) {
     :root {
-        --ink: #c6c9cd;
-        --red: #d9736f;
-        --joker: #b388c9;
-        --card-bg: #26282b;
-        --card-border: #46484c;
+        --ink: #c7c7cc;
+        --red: #e0615a;
+        --joker: #c68cf0;
+        --card-bg: #1c1c1e;
+        --card-border: rgba(255, 255, 255, .12);
     }
 }
 
@@ -47,9 +68,11 @@ html, body {
     height: 100%;
     margin: 0;
     overflow: hidden;
-    background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%) fixed;
+    background:
+    radial-gradient(ellipse 120% 70% at 50% -10%, color-mix(in srgb, var(--felt) 70%, white 6%) 0%, var(--felt) 38%, var(--felt-dark) 100%) fixed;
     color: var(--panel-text);
-    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
 .sr-only {
@@ -62,7 +85,7 @@ html, body {
     border: 0;
 }
 
-/* ---------- rozvržení přesně podle viewportu ---------- */
+/* ---------- layout, matched exactly to the viewport ---------- */
 
 .app {
     display: flex;
@@ -71,10 +94,10 @@ html, body {
     height: 100dvh;
     max-width: 1600px;
     margin: 0 auto;
-    padding: 0 8px;
+    padding: 0 10px;
 }
 
-/* obaluje vše kromě lišty, aby se na mobilu naležato dala lišta přeskupit do bočního panelu */
+/* wraps everything but the toolbar, so a landscape phone can regroup the toolbar into a side rail */
 .main-col {
     flex: 1 1 auto;
     min-height: 0;
@@ -88,54 +111,147 @@ html, body {
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    padding: 8px;
+    padding: 10px;
     background: var(--panel);
-    border-radius: 0 0 10px 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--panel-border);
+    border-top: none;
+    border-radius: 0 0 18px 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
     z-index: 20000;
 }
 
 .toolbar .spacer { flex: 1 1 auto; }
 
 .toolbar button,
-.toolbar select,
+.select-btn,
 dialog button {
     font: inherit;
+    font-weight: 590;
+    letter-spacing: -.01em;
     color: var(--panel-text);
-    background: #1f4a31;
-    border: 1px solid #3d7a56;
-    border-radius: 8px;
-    padding: 6px 12px;
+    background: var(--control);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 14px;
     min-height: 36px;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .15s ease, transform .1s ease, opacity .15s ease;
 }
 
 .toolbar button:hover:not(:disabled),
-.toolbar select:hover,
-dialog button:hover { background: #2a6142; }
+.select-btn:hover,
+dialog button:hover { background: var(--control-hover); }
 
-.toolbar button:disabled { opacity: .45; cursor: default; }
+.toolbar button:active:not(:disabled),
+.select-btn:active,
+dialog button:active { background: var(--control-press); transform: scale(.96); }
+
+.toolbar button:disabled { opacity: .38; cursor: default; }
 .toolbar button[hidden] { display: none; }
+
+/* primary action stands out with the system tint, like a default dialog button */
+#btn-new, dialog button {
+    background: var(--tint);
+    color: var(--tint-ink);
+}
+#btn-new:hover:not(:disabled), dialog button:hover { background: color-mix(in srgb, var(--tint) 85%, white 15%); }
+#btn-new:active:not(:disabled), dialog button:active { background: color-mix(in srgb, var(--tint) 75%, black 10%); }
 
 .toolbar .toggle {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
+    padding: 0 2px;
     cursor: pointer;
     user-select: none;
+    color: var(--panel-text-dim);
+    font-weight: 500;
 }
 .toolbar .toggle[hidden] { display: none; }
 .toolbar .toggle input {
     width: 18px;
     height: 18px;
-    accent-color: var(--accent);
+    accent-color: var(--tint);
+}
+
+/* ---------- game picker: a custom combobox, fully themed (native popups can't be) ---------- */
+
+.select { position: relative; }
+
+.select-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    text-align: left;
+}
+.select-btn[aria-expanded="true"] { background: var(--control-hover); }
+
+.select-chevron {
+    width: 12px;
+    height: 12px;
+    flex: none;
+    color: var(--panel-text-dim);
+    transition: transform .2s var(--ease);
+}
+.select-btn[aria-expanded="true"] .select-chevron { transform: rotate(180deg); }
+
+.select-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30000;
+    margin: 0;
+    padding: 6px;
+    min-width: max(100%, 190px);
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
+    list-style: none;
+    background: var(--panel);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
+    transform-origin: top left;
+    animation: select-in .16s var(--ease);
+}
+.select-menu[hidden] { display: none; }
+
+@keyframes select-in {
+    from { opacity: 0; transform: scale(.95) translateY(-4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.select-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--panel-text);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.select-option.is-active { background: var(--control-hover); }
+.select-option.is-selected { color: var(--tint); font-weight: 650; }
+.select-option.is-selected::after {
+    content: "\2713";
+    font-weight: 700;
 }
 
 .info {
     display: flex;
-    gap: 12px;
+    gap: 14px;
+    color: var(--panel-text-dim);
     font-variant-numeric: tabular-nums;
+    font-weight: 500;
 }
+.info span span { color: var(--panel-text); font-weight: 600; }
 
 .statusbar {
     flex: none;
@@ -143,12 +259,13 @@ dialog button:hover { background: #2a6142; }
     flex-wrap: wrap;
     justify-content: space-between;
     gap: 8px;
-    padding: 4px 8px;
-    font-size: .85rem;
-    color: #cfe8d6;
+    padding: 6px 10px;
+    font-size: .82rem;
+    font-weight: 500;
+    color: rgba(245, 245, 247, .62);
 }
 
-/* Herní oblast vyplní zbytek výšky; karty se podle ní přizpůsobí, posuvník není. */
+/* the board fills the remaining height; cards size to fit it, no scrollbar */
 .board-wrap {
     flex: 1 1 auto;
     min-height: 0;
@@ -158,18 +275,20 @@ dialog button:hover { background: #2a6142; }
 
 .footer {
     flex: none;
-    padding: 4px 8px 6px;
-    font-size: .75rem;
-    color: #a9cbb4;
+    padding: 4px 10px 8px;
+    font-size: .74rem;
+    color: rgba(245, 245, 247, .4);
 }
-.footer a { color: var(--accent); }
+.footer a { color: var(--tint); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
 
 :focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 2px;
+    outline: 2px solid var(--tint);
+    outline-offset: 3px;
+    border-radius: 6px;
 }
 
-/* ---------- herní plocha ---------- */
+/* ---------- game board ---------- */
 
 .board {
     --ch: calc(var(--cw) * 1.4);
@@ -179,21 +298,21 @@ dialog button:hover { background: #2a6142; }
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    transition: --cw .3s var(--ease);       /* plynulá změna velikosti karet */
+    transition: --cw .3s var(--ease);       /* smooth resize when cards change size */
 }
 .board.instant { transition: none; }
 
-/* jemné objevení plochy po přepnutí hry */
+/* a gentle fade-in when switching games */
 .board.entering { animation: board-in .22s ease-out; }
 @keyframes board-in {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
-/* během rozdání nelze s kartami hýbat */
+/* cards can't be moved while the deal animation is running */
 .board.dealing .card { pointer-events: none; }
 
-/* ---------- místa hromádek ---------- */
+/* ---------- pile slots ---------- */
 
 .slot {
     position: absolute;
@@ -202,20 +321,21 @@ dialog button:hover { background: #2a6142; }
     width: var(--cw);
     height: var(--ch);
     z-index: 0;
-    border: 2px dashed rgba(255, 255, 255, .28);
-    border-radius: calc(var(--cw) * .08);
+    border: 1.5px solid rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .04);
+    border-radius: calc(var(--cw) * .11);
     display: flex;
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, .28);
-    font-size: calc(var(--cw) * .45);
-    font-weight: 700;
+    font-size: calc(var(--cw) * .34);
+    font-weight: 600;
     will-change: translate;
     transition: translate .3s var(--ease);
 }
 .board.instant .slot { transition: none; }
 
-/* skryté místo hromádky (prázdná místa pyramid) */
+/* a hidden pile slot (empty peak positions) */
 .slot[hidden] { display: none; }
 
 .slot-stock::after { content: "\21BB"; }       /* ↻ */
@@ -224,16 +344,16 @@ dialog button:hover { background: #2a6142; }
 .slot-waste::after { content: ""; }
 .slot-joker::after { content: "\2605"; }       /* ★ */
 
-/* Victorian: každá přihrádka Mantel patří jedné barvě */
+/* Victorian: each Mantel slot belongs to one suit */
 .slot[data-pile="m0"]::after { content: "\2660"; }
 .slot[data-pile="m1"]::after { content: "\2665"; }
 .slot[data-pile="m2"]::after { content: "\2666"; }
 .slot[data-pile="m3"]::after { content: "\2663"; }
-.slot[data-pile="m1"], .slot[data-pile="m2"] { color: rgba(255, 120, 120, .45); }
+.slot[data-pile="m1"], .slot[data-pile="m2"] { color: rgba(255, 110, 110, .4); }
 
-.slot.hint { animation: pulse 0.7s ease-in-out 2; }
+.slot.hint { animation: pulse 0.8s ease-in-out 2; }
 
-/* ---------- karty ---------- */
+/* ---------- cards ---------- */
 
 .card {
     position: absolute;
@@ -242,16 +362,16 @@ dialog button:hover { background: #2a6142; }
     width: var(--cw);
     height: var(--ch);
     z-index: var(--z, 1);
-    border-radius: calc(var(--cw) * .08);
+    border-radius: calc(var(--cw) * .1);
     perspective: calc(var(--cw) * 5);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 0 0 1px rgba(0, 0, 0, .08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 16px rgba(0, 0, 0, .18);
     will-change: translate, scale;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     contain: layout style;
     cursor: pointer;
-    /* zvednutí při tažení a plynulé vrácení; polohu animuje JavaScript */
+    /* lift while dragging and a smooth return; position itself is animated from JS */
     transition: scale .18s var(--ease), box-shadow .22s ease;
 }
 
@@ -262,7 +382,7 @@ dialog button:hover { background: #2a6142; }
 .card.joker { color: var(--joker); }
 .card.down { cursor: default; }
 
-/* vnitřní prvek se překlápí ve 3D; líc a rub jsou dvě skutečné plochy */
+/* the inner element flips in 3D; face and back are two real faces */
 .card .inner {
     position: absolute;
     inset: 0;
@@ -282,7 +402,7 @@ dialog button:hover { background: #2a6142; }
     -webkit-backface-visibility: hidden;
 }
 
-/* zakrytá karta (leží přes ni další) je o něco tmavší, aby bylo vidět vrstvení */
+/* a fully-covered card (another one lies on top) dims slightly to read as a stack */
 .card .face::after {
     content: "";
     position: absolute;
@@ -291,10 +411,17 @@ dialog button:hover { background: #2a6142; }
     transition: background .3s ease;
     pointer-events: none;
 }
-.card.buried .face::after { background: rgba(0, 20, 10, .13); }
+.card.buried .face::after { background: rgba(0, 10, 5, .1); }
 
 @media (prefers-color-scheme: dark) {
-    .card.buried .face::after { background: rgba(0, 0, 0, .28); }
+    .card.buried .face::after { background: rgba(0, 0, 0, .25); }
+}
+
+/* a buried card keeps its own full drop shadow, which is pointless since it's
+   hidden under the next card anyway — in a tight stack (e.g. the waste pile)
+   those shadows pile up into one heavy, muddy halo. One soft shadow is plenty. */
+.card.buried {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
 }
 
 .card .front {
@@ -302,17 +429,25 @@ dialog button:hover { background: #2a6142; }
     border: 1px solid var(--card-border);
 }
 
-/* rub karty: pouze CSS vzor */
+/* card back: a deep, understated emerald with a thin gold medallion — a quiet
+   nod to the felt table instead of a loud, generic neon-blue gradient */
 .card .back {
     transform: rotateY(180deg);
     background:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, .18) 0 4px, transparent 4px 8px),
-    repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 4px, transparent 4px 8px),
-    #1e4fa3;
-    border: calc(var(--cw) * .05) solid var(--card-bg);
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .07) 0%, rgba(255, 255, 255, 0) 45%),
+    linear-gradient(155deg, #1d4b37 0%, #0d2a1e 58%, #04120b 100%);
+    border: calc(var(--cw) * .045) solid var(--card-bg);
+}
+.card .back::before {
+    content: "";
+    position: absolute;
+    inset: 16%;
+    border: 1px solid rgba(255, 214, 10, .34);
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(255, 214, 10, .14);
 }
 
-/* Roh karty: hodnota a symbol VEDLE sebe, aby stačil úzký viditelný pruh. */
+/* corner: rank and suit side by side, so a thin sliver of the card is enough */
 .card .corner {
     position: absolute;
     display: flex;
@@ -322,22 +457,22 @@ dialog button:hover { background: #2a6142; }
     line-height: 1;
     white-space: nowrap;
 }
-.card .corner.tl { left: calc(var(--cw) * .06); top: calc(var(--cw) * .04); }
+.card .corner.tl { left: calc(var(--cw) * .07); top: calc(var(--cw) * .05); }
 .card .corner.br {
-    right: calc(var(--cw) * .06);
-    bottom: calc(var(--cw) * .04);
+    right: calc(var(--cw) * .07);
+    bottom: calc(var(--cw) * .05);
     transform: rotate(180deg);
 }
 
 .card .rk {
-    font-size: calc(var(--cw) * .22);
-    font-weight: 700;
-    letter-spacing: -.04em;
+    font-size: calc(var(--cw) * .21);
+    font-weight: 650;
+    letter-spacing: -.03em;
 }
 
 .card svg { fill: currentColor; display: block; }
-.card .sm { width: calc(var(--cw) * .18); height: calc(var(--cw) * .18); }
-.card .big { width: calc(var(--cw) * .5); height: calc(var(--cw) * .5); }
+.card .sm { width: calc(var(--cw) * .17); height: calc(var(--cw) * .17); }
+.card .big { width: calc(var(--cw) * .46); height: calc(var(--cw) * .46); opacity: .92; }
 
 .card .center {
     position: absolute;
@@ -347,63 +482,63 @@ dialog button:hover { background: #2a6142; }
     justify-content: center;
 }
 
-/* žolík */
+/* joker */
 .card.joker .center { flex-direction: column; gap: calc(var(--cw) * .04); }
 .card .jk {
-    font-size: calc(var(--cw) * .17);
-    font-weight: 700;
-    letter-spacing: .1em;
+    font-size: calc(var(--cw) * .16);
+    font-weight: 650;
+    letter-spacing: .08em;
 }
 
-/* stavy při animaci a tažení; z-index se k pořadí karty (--z) jen přičítá */
+/* animation/drag states; z-index only ever adds to the card's own order (--z) */
 .card.moving {
     z-index: calc(var(--z, 1) + 1000);
-    box-shadow: 0 9px 18px rgba(0, 0, 0, .38), 0 0 0 1px rgba(0, 0, 0, .08);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, .32), 0 2px 6px rgba(0, 0, 0, .2);
 }
 .card.dragging {
     z-index: calc(var(--z, 1) + 10000);
     cursor: grabbing;
     scale: 1.05;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, .5);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, .4);
 }
 
-.card.hint { animation: pulse 0.7s ease-in-out 2; }
+.card.hint { animation: pulse 0.8s ease-in-out 2; }
 
-/* zvýraznění všech karet, které lze přesunout */
+/* highlights every card that can currently be moved */
 .card.hint-on {
-    outline: 3px solid var(--accent);
-    outline-offset: -3px;
-    box-shadow: 0 0 12px 4px rgba(255, 213, 79, .7);
+    outline: 2.5px solid var(--hint);
+    outline-offset: -2.5px;
+    box-shadow: 0 0 14px 3px rgba(255, 214, 10, .55);
 }
 
-/* zablikání tlačítka, když lze jen rozdat znovu */
-.toolbar button.hint { animation: pulse 0.7s ease-in-out 2; }
+/* flashes the button when the only move left is a redeal */
+.toolbar button.hint { animation: pulse 0.8s ease-in-out 2; }
 
 .drop-hint {
     position: absolute;
     z-index: 9000;
     pointer-events: none;
-    border: 3px solid var(--accent);
-    border-radius: calc(var(--cw) * .1);
-    background: rgba(255, 213, 79, .15);
+    border: 2.5px solid var(--tint);
+    border-radius: calc(var(--cw) * .12);
+    background: rgba(10, 132, 255, .14);
 }
 
-/* bublina se změnou skóre, nad hromádkou odkládání karet */
+/* score-change bubble, floating above the waste pile */
 .score-pop {
     position: absolute;
     left: 0;
     top: 0;
     z-index: 15000;
     pointer-events: none;
-    font-weight: 800;
+    font-weight: 700;
     font-size: calc(var(--cw) * .3);
-    color: var(--accent);
-    text-shadow: 0 1px 3px rgba(0, 0, 0, .6);
+    color: var(--good);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
     opacity: 0;
     transform: translate(-50%, -100%) scale(.85);
     transition: opacity .4s ease, transform .4s ease;
 }
-.score-pop.neg { color: #ff8a80; }
+.score-pop.neg { color: var(--bad); }
 .score-pop.show {
     opacity: 1;
     transform: translate(-50%, -100%) scale(1);
@@ -411,38 +546,41 @@ dialog button:hover { background: #2a6142; }
 }
 
 @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 213, 79, 0); }
-    50% { box-shadow: 0 0 0 5px rgba(255, 213, 79, .95); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 10, 0); }
+    50% { box-shadow: 0 0 0 5px rgba(255, 214, 10, .9); }
 }
 
-/* ---------- okno po výhře ---------- */
+/* ---------- win dialog ---------- */
 
 dialog {
-    border: 1px solid #3d7a56;
-    border-radius: 14px;
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
     background: var(--panel);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
     color: var(--panel-text);
-    padding: 24px 28px;
+    padding: 28px 30px;
     max-width: min(92vw, 420px);
     text-align: center;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .45);
 }
-dialog::backdrop { background: rgba(0, 0, 0, .55); }
-dialog h2 { margin: 0 0 8px; font-size: 1.4rem; }
-dialog p { margin: 6px 0; }
-dialog button { margin-top: 14px; }
+dialog::backdrop { background: rgba(0, 0, 0, .4); backdrop-filter: blur(3px); }
+dialog h2 { margin: 0 0 8px; font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
+dialog p { margin: 6px 0; color: var(--panel-text-dim); }
+dialog button { margin-top: 16px; padding: 10px 22px; }
 
-/* ---------- úzké obrazovky ---------- */
+/* ---------- narrow screens ---------- */
 
 @media (max-width: 520px) {
-    .app { padding: 0 4px; }
-    .toolbar { gap: 6px; padding: 6px; }
-    .toolbar button, .toolbar select { padding: 6px 9px; min-height: 40px; }
-    .statusbar { font-size: .75rem; }
+    .app { padding: 0 6px; }
+    .toolbar { gap: 6px; padding: 8px; }
+    .toolbar button, .select-btn { padding: 7px 10px; min-height: 40px; }
+    .statusbar { font-size: .76rem; }
 }
 
-/* ---------- úzké nebo nízké obrazovky (mobil, zejména naležato) ---------- */
+/* ---------- narrow or short screens (mobile, especially landscape) ---------- */
 
-/* lišta se nezalamuje do víc řádků, ale rolovatelná vodorovně */
+/* the toolbar no longer wraps into several rows, it scrolls horizontally instead */
 @media (max-width: 700px), (max-height: 520px) {
     .toolbar {
         flex-wrap: nowrap;
@@ -457,20 +595,20 @@ dialog button { margin-top: 14px; }
     .info { white-space: nowrap; }
 }
 
-/* malá výška: lišta i patička zaberou co nejméně místa (obecný záložní stav) */
+/* short height: toolbar and footer take up as little room as possible (generic fallback) */
 @media (max-height: 480px) {
-    .toolbar { padding: 4px 6px; gap: 4px; }
-    .toolbar button, .toolbar select, dialog button {
-        padding: 4px 10px;
+    .toolbar { padding: 6px 8px; gap: 4px; }
+    .toolbar button, .select-btn, dialog button {
+        padding: 5px 11px;
         min-height: 30px;
         font-size: .85rem;
     }
     .toolbar .toggle { font-size: .8rem; gap: 4px; }
-    .statusbar { padding: 2px 6px; font-size: .68rem; }
+    .statusbar { padding: 2px 8px; font-size: .68rem; }
     .footer { display: none; }
 }
 
-/* ---------- mobil naležato: lišta jako úzký boční panel, karty dostanou zbytek výšky ---------- */
+/* ---------- landscape phone: the toolbar becomes a narrow side rail, cards get the rest of the height ---------- */
 
 @media (max-height: 520px) and (orientation: landscape) {
     .app {
@@ -483,38 +621,40 @@ dialog button { margin-top: 14px; }
         flex: none;
         flex-direction: column;
         align-items: stretch;
-        width: 172px;
+        width: 176px;
         max-width: 42vw;
         height: 100%;
         gap: 6px;
-        padding: 8px 6px;
-        border-radius: 0 12px 12px 0;
+        padding: 10px 8px;
+        border-radius: 0 20px 20px 0;
+        border-top: 1px solid var(--panel-border);
+        border-left: none;
         overflow-x: hidden;
         overflow-y: auto;
     }
     .toolbar::-webkit-scrollbar { width: 4px; }
 
     .toolbar .spacer { display: none; }
-    .toolbar select,
+    .select-btn,
     .toolbar button,
     .toolbar .toggle { width: 100%; }
-    .toolbar button, .toolbar select, dialog button {
-        padding: 5px 8px;
+    .toolbar button, .select-btn, dialog button {
+        padding: 6px 10px;
         min-height: 30px;
         font-size: .82rem;
     }
     .toolbar .toggle { justify-content: flex-start; font-size: .78rem; }
 
     .info { flex-direction: column; align-items: flex-start; gap: 2px; white-space: normal; }
-    .statusbar { padding: 2px 6px; font-size: .68rem; }
+    .statusbar { padding: 2px 8px; font-size: .68rem; }
     .footer { display: none; }
 }
 
-/* ---------- omezení pohybu ---------- */
+/* ---------- reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
     .board, .slot, .card { transition: none; }
     .board.entering { animation: none; }
-    .card.hint, .slot.hint, .toolbar button.hint { animation: none; outline: 3px solid var(--accent); }
+    .card.hint, .slot.hint, .toolbar button.hint { animation: none; outline: 2.5px solid var(--hint); }
     .score-pop, .score-pop.show { transform: translate(-50%, -100%); }
 }
