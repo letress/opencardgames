@@ -74,6 +74,14 @@ html, body {
     padding: 0 8px;
 }
 
+/* obaluje vše kromě lišty, aby se na mobilu naležato dala lišta přeskupit do bočního panelu */
+.main-col {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .toolbar {
     flex: none;
     display: flex;
@@ -127,29 +135,6 @@ dialog button:hover { background: #2a6142; }
     display: flex;
     gap: 12px;
     font-variant-numeric: tabular-nums;
-}
-
-/* bublina se změnou skóre: vždy na stejném místě vedle čísla skóre */
-.score-wrap { position: relative; display: inline-block; }
-
-.score-pop {
-    position: absolute;
-    left: 100%;
-    top: 50%;
-    margin-left: 6px;
-    transform: translateY(-50%) scale(.8);
-    font-weight: 800;
-    color: var(--accent);
-    opacity: 0;
-    pointer-events: none;
-    white-space: nowrap;
-    transition: opacity .4s ease, transform .4s ease;
-}
-.score-pop.neg { color: #ff8a80; }
-.score-pop.show {
-    opacity: 1;
-    transform: translateY(-50%) scale(1);
-    transition: opacity .15s ease, transform .15s ease;
 }
 
 .statusbar {
@@ -403,6 +388,28 @@ dialog button:hover { background: #2a6142; }
     background: rgba(255, 213, 79, .15);
 }
 
+/* bublina se změnou skóre, nad hromádkou odkládání karet */
+.score-pop {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 15000;
+    pointer-events: none;
+    font-weight: 800;
+    font-size: calc(var(--cw) * .3);
+    color: var(--accent);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .6);
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(.85);
+    transition: opacity .4s ease, transform .4s ease;
+}
+.score-pop.neg { color: #ff8a80; }
+.score-pop.show {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1);
+    transition: opacity .15s ease, transform .15s ease;
+}
+
 @keyframes pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(255, 213, 79, 0); }
     50% { box-shadow: 0 0 0 5px rgba(255, 213, 79, .95); }
@@ -450,7 +457,7 @@ dialog button { margin-top: 14px; }
     .info { white-space: nowrap; }
 }
 
-/* malá výška (mobil naležato): lišta i patička zaberou co nejméně místa */
+/* malá výška: lišta i patička zaberou co nejméně místa (obecný záložní stav) */
 @media (max-height: 480px) {
     .toolbar { padding: 4px 6px; gap: 4px; }
     .toolbar button, .toolbar select, dialog button {
@@ -463,11 +470,51 @@ dialog button { margin-top: 14px; }
     .footer { display: none; }
 }
 
+/* ---------- mobil naležato: lišta jako úzký boční panel, karty dostanou zbytek výšky ---------- */
+
+@media (max-height: 520px) and (orientation: landscape) {
+    .app {
+        flex-direction: row;
+        max-width: none;
+        padding: 0;
+    }
+
+    .toolbar {
+        flex: none;
+        flex-direction: column;
+        align-items: stretch;
+        width: 172px;
+        max-width: 42vw;
+        height: 100%;
+        gap: 6px;
+        padding: 8px 6px;
+        border-radius: 0 12px 12px 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+    .toolbar::-webkit-scrollbar { width: 4px; }
+
+    .toolbar .spacer { display: none; }
+    .toolbar select,
+    .toolbar button,
+    .toolbar .toggle { width: 100%; }
+    .toolbar button, .toolbar select, dialog button {
+        padding: 5px 8px;
+        min-height: 30px;
+        font-size: .82rem;
+    }
+    .toolbar .toggle { justify-content: flex-start; font-size: .78rem; }
+
+    .info { flex-direction: column; align-items: flex-start; gap: 2px; white-space: normal; }
+    .statusbar { padding: 2px 6px; font-size: .68rem; }
+    .footer { display: none; }
+}
+
 /* ---------- omezení pohybu ---------- */
 
 @media (prefers-reduced-motion: reduce) {
     .board, .slot, .card { transition: none; }
     .board.entering { animation: none; }
     .card.hint, .slot.hint, .toolbar button.hint { animation: none; outline: 3px solid var(--accent); }
-    .score-pop, .score-pop.show { transform: translateY(-50%); }
+    .score-pop, .score-pop.show { transform: translate(-50%, -100%); }
 }

@@ -21,7 +21,9 @@ const Z_PER_ROW = 20;             // lower rows lie on top of higher ones
 
 // Three peaks side by side (apex -> 2 cards -> 3 cards), sitting on one shared
 // connecting row of 10 cards that is always exposed (nothing lies on top of it).
-const PEAK_OFFSETS = [0, 3.5, 7];                 // left edge of each peak (card-width units)
+// Offsets are half-steps so each peak's bottom row sits, like every other row,
+// squarely between two of the cards below it (here: two base-row cards).
+const PEAK_OFFSETS = [0.5, 3.5, 6.5];             // left edge of each peak (card-width units)
 const PEAK_ROWS = [[1], [0.5, 1.5], [0, 1, 2]];   // local x per row within a peak
 const BASE_ROW = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];  // shared bottom row
 
@@ -65,6 +67,14 @@ const lastOf = arr => arr[arr.length - 1];
 /** Is the card playable (nothing left covering it)? */
 function exposed(state, id) {
     return COVERS[id].every(c => state.piles[c].length === 0);
+}
+
+/** Flips every newly-exposed tableau card face up (a card "freed" of its cover). */
+function revealExposed(state) {
+    for (const id of TABLEAU) {
+        const pile = state.piles[id];
+        if (pile.length && !pile[0].up && exposed(state, id)) pile[0].up = true;
+    }
 }
 
 /** Adjacent ranks (suit-independent). */
@@ -118,7 +128,7 @@ const tripeaks = {
     deal(state, rng) {
         const cards = shuffle(makeDeck(1), rng);
         TABLEAU.forEach((id, i) => {
-            cards[i].up = true;
+            cards[i].up = false;                        // revealed once freed of its cover
             state.piles[id].push(cards[i]);
         });
 
@@ -132,6 +142,7 @@ const tripeaks = {
 
         state.meta.score = 0;
         state.meta.streak = 0;
+        revealExposed(state);                           // the base row starts already exposed
     },
 
     // Only an exposed tableau card can be dragged onto the waste pile
@@ -146,7 +157,11 @@ const tripeaks = {
 
     // Scoring for a card dragged onto the waste pile (Game.move)
     onMove(state, { from, moved }) {
-        if (TABLEAU.includes(from)) scorePlay(state, moved[0]);
+        if (TABLEAU.includes(from)) {
+            moved[0].up = true;
+            scorePlay(state, moved[0]);
+            revealExposed(state);
+        }
     },
 
     // Click: draw from the stock, or play a tableau card onto the waste pile
@@ -171,6 +186,7 @@ const tripeaks = {
             card.up = true;
             waste.push(card);
             scorePlay(state, card);
+            revealExposed(state);
             return true;
         }
         return false;
@@ -185,8 +201,10 @@ const tripeaks = {
         return TABLEAU.every(id => state.piles[id].length === 0);
     },
 
-    // Lost when the stock is empty and no exposed card can be played
+    // Lost when the stock is empty and no exposed card can be played; an empty
+    // tableau is a win, never a stuck position
     isLost(state) {
+        if (TABLEAU.every(id => state.piles[id].length === 0)) return false;
         if (state.piles.stock.length > 0) return false;
         const top = lastOf(state.piles.waste);
         return !TABLEAU.some(id =>

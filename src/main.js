@@ -25,7 +25,6 @@ import pyramids from './games/pyramids.js';
 import tripeaks from './games/tripeaks.js';
 
 const NEXT_ROUND_DELAY = 1500;   // pause between a finished round and dealing the next one (ms)
-const SCORE_POP_HOLD_MS = 1500;  // how long the score bubble stays fully visible before fading
 
 /* All interface text lives here (easy to localize). */
 const STRINGS = {
@@ -58,7 +57,6 @@ let hintEls = [];
 let over = false;          // the game has ended (won or stuck); the result is recorded only once
 let pendingNext = false;   // the round is cleared and the next one will deal itself shortly
 let lastScore = null;      // score at the last event, used to compute the +N/-N bubble
-let scorePopHideTimer = null;
 
 const scoreOf = g => (g.def.scoring ? (g.state.meta.score ?? 0) : null);
 
@@ -149,25 +147,12 @@ function onEvent({ type }) {
     if (game.def.scoring && type !== 'start') {
         const score = scoreOf(game);
         if ((type === 'click' || type === 'move') && lastScore !== null && score !== lastScore) {
-            showScorePopup(score - lastScore);
+            board.showScorePopup(score - lastScore);
         }
         lastScore = score;
     }
 
     updateUi();
-}
-
-/** Flashes a +N/-N bubble next to the score indicator (always the same spot). */
-function showScorePopup(delta) {
-    const pop = $('score-pop');
-    if (!pop) return;
-    clearTimeout(scorePopHideTimer);
-    pop.textContent = (delta > 0 ? '+' : '') + delta;
-    pop.classList.remove('show', 'pos', 'neg');
-    pop.classList.add(delta < 0 ? 'neg' : 'pos');
-    void pop.offsetWidth;                 // restart the animation if it is still running
-    pop.classList.add('show');
-    scorePopHideTimer = setTimeout(() => pop.classList.remove('show'), SCORE_POP_HOLD_MS);
 }
 
 function showDialog({ title, text, stats }) {
@@ -188,6 +173,7 @@ function roundCleared() {
 
     if (def.rounds && round < def.rounds) {
         pendingNext = true;
+        clearTimeout(winTimer);
         saveGame(game.save());
         setStatus(STRINGS.roundDone(round, scoreOf(game)));
         winTimer = setTimeout(() => game.nextRound(), NEXT_ROUND_DELAY);
@@ -207,6 +193,7 @@ function finishGame(won) {
     const stats = recordResult(def.id, { won, moves: game.moves, score });
     clearGame(def.id);
 
+    clearTimeout(winTimer);
     winTimer = setTimeout(() => showDialog({
         title: won ? STRINGS.winTitle : STRINGS.lostTitle,
         text: multi
@@ -218,7 +205,9 @@ function finishGame(won) {
 
 /** Games that can detect a stuck position end here. */
 function checkLost() {
-    if (over || pendingNext || game.won || !game.def.isLost || !game.def.isLost(game.state)) return;
+    // a move can clear the board (win) before Game.won is updated; never call that "stuck"
+    if (over || pendingNext || game.won || game.def.isWon(game.state)) return;
+    if (!game.def.isLost || !game.def.isLost(game.state)) return;
     finishGame(false);
 }
 
@@ -231,8 +220,7 @@ function scoreBox() {
         box = document.createElement('span');
         box.id = 'score-box';
         box.hidden = true;
-        box.innerHTML = 'Score: <span class="score-wrap"><span id="score">0</span>' +
-        '<span id="score-pop" class="score-pop" aria-hidden="true"></span></span>' +
+        box.innerHTML = 'Score: <span id="score">0</span>' +
         '<span id="round-info"> · Round: <span id="round">1</span>/<span id="rounds">3</span></span>';
         (document.querySelector('.info') || document.body).appendChild(box);
     }

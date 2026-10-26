@@ -17,6 +17,7 @@ const ASPECT = 1.4;          // výška / šířka karty
 const PAD = 8;               // okraj plochy v px
 const MIN_CW = 28;
 const MAX_CW = 140;          // největší šířka karty v px
+const SCORE_POP_HOLD_MS = 1500;   // jak dlouho zůstane bublina se skóre plně vidět, než se rozplyne
 
 // Svislé odsazení ve sloupcích jako násobek ŠÍŘKY karty.
 const FAN_UP = 0.33;         // běžné odsazení lícem nahoru (vždy vidět hodnota i symbol)
@@ -123,6 +124,7 @@ export class Board {
         if (this._ro) this._ro.disconnect();
         else window.removeEventListener('resize', this._onResize);
         cancelAnimationFrame(this._raf);
+        clearTimeout(this._scorePopTimer);
         this._dealToken++;
         this.#stopCelebration();
     }
@@ -157,6 +159,8 @@ export class Board {
     this.targets.clear();
     this.pileRects = {};
     this.hintRects = {};
+    clearTimeout(this._scorePopTimer);
+    this._scorePop = null;
     for (const [id, cfg] of Object.entries(this.game.def.layout)) {
         const slot = createSlotEl(id, cfg.type);
         if (cfg.noSlot) slot.hidden = true;       // např. prázdná místa pyramid se nekreslí
@@ -509,6 +513,34 @@ export class Board {
 
     relayout() {
         this._onResize();
+    }
+
+    /**
+     * Krátce zobrazí bublinu se změnou skóre (+N/-N) nad hromádkou odkládání
+     * (typ 'waste'); pokud ji hra nemá, nic se nezobrazí.
+     */
+    showScorePopup(delta) {
+    const layout = this.game.def.layout;
+    const wasteId = Object.keys(layout).find(id => layout[id].type === 'waste');
+    const r = wasteId && this.pileRects[wasteId];
+    if (!r) return;
+
+    let el = this._scorePop;
+    if (!el) {
+        el = document.createElement('div');
+        el.className = 'score-pop';
+        this.root.appendChild(el);
+        this._scorePop = el;
+    }
+
+    clearTimeout(this._scorePopTimer);
+    el.textContent = (delta > 0 ? '+' : '') + delta;
+    el.classList.remove('show', 'pos', 'neg');
+    el.classList.add(delta < 0 ? 'neg' : 'pos');
+    el.style.translate = `${Math.round(r.x + r.w / 2)}px ${Math.round(r.y)}px`;
+    void el.offsetWidth;                 // restart animace, pokud bublina už běžela
+    el.classList.add('show');
+    this._scorePopTimer = setTimeout(() => el.classList.remove('show'), SCORE_POP_HOLD_MS);
     }
 
     /** Promise, který se splní, až doběhnou všechny animace karet (i sbalení před rozdáním). */

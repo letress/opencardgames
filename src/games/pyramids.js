@@ -200,8 +200,9 @@ const pyramids = {
         return PYRAMID.every(id => state.piles[id].length === 0);
     },
 
-    // Hra končí, když nelze udělat žádný tah (ani s žolíkem)
+    // Hra končí, když nelze udělat žádný tah (ani s žolíkem); prázdná pyramida je výhra, ne uvíznutí
     isLost(state) {
+        if (PYRAMID.every(id => state.piles[id].length === 0)) return false;
         if (state.piles.stock.length > 0 || state.piles.joker.length > 0) return false;
         const top = lastOf(state.piles.waste);
         return !PYRAMID.some(id =>
