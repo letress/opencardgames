@@ -20,11 +20,25 @@
     --felt-dark: #0f4a27;
     --ink: #1a1a1a;
     --red: #c62828;
+    --joker: #7b1fa2;
+    --card-bg: #fafafa;
+    --card-border: #b9b9b9;
     --accent: #ffd54f;
     --panel: #12301f;
     --panel-text: #f1f8f3;
     --ease: cubic-bezier(.22, 1, .36, 1);
     color-scheme: dark;
+}
+
+/* tmavý režim prohlížeče/systému: karty dostanou temný lícový podklad */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ink: #e8e8e8;
+        --red: #ff6b6b;
+        --joker: #d08ae0;
+        --card-bg: #26282b;
+        --card-border: #46484c;
+    }
 }
 
 * { box-sizing: border-box; }
@@ -237,7 +251,7 @@ dialog button:hover { background: #2a6142; }
 
 .card.red { color: var(--red); }
 .card.blk { color: var(--ink); }
-.card.joker { color: #7b1fa2; }
+.card.joker { color: var(--joker); }
 .card.down { cursor: default; }
 
 /* vnitřní prvek se překlápí ve 3D; líc a rub jsou dvě skutečné plochy */
@@ -271,9 +285,13 @@ dialog button:hover { background: #2a6142; }
 }
 .card.buried .face::after { background: rgba(0, 20, 10, .13); }
 
+@media (prefers-color-scheme: dark) {
+    .card.buried .face::after { background: rgba(0, 0, 0, .28); }
+}
+
 .card .front {
-    background: #fafafa;
-    border: 1px solid #b9b9b9;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
 }
 
 /* rub karty: pouze CSS vzor */
@@ -283,7 +301,7 @@ dialog button:hover { background: #2a6142; }
     repeating-linear-gradient(45deg, rgba(255, 255, 255, .18) 0 4px, transparent 4px 8px),
     repeating-linear-gradient(-45deg, rgba(255, 255, 255, .18) 0 4px, transparent 4px 8px),
     #1e4fa3;
-    border: calc(var(--cw) * .05) solid #fafafa;
+    border: calc(var(--cw) * .05) solid var(--card-bg);
 }
 
 /* Roh karty: hodnota a symbol VEDLE sebe, aby stačil úzký viditelný pruh. */
