@@ -92,10 +92,7 @@ function openGame(def, { fresh = false } = {}) {
     if (!board) {
         board = new Board($('board'), game);
         attachDrag(board);
-        autodrop = new AutoDrop(game, {
-            waitIdle: () => board.whenIdle(),
-                                onActive: active => { $('btn-drop').disabled = active; },
-        });
+        autodrop = new AutoDrop(game, { waitIdle: () => board.whenIdle() });
         autodrop.setEnabled(getSettings().autoDrop);
     } else {
         board.setGame(game);
@@ -265,7 +262,6 @@ function updateUi() {
 
     // auto-collecting onto foundations only makes sense for games that support it
     const hasDrop = !!def.dropCandidates;
-    $('btn-drop').hidden = !hasDrop;
     const toggle = $('opt-autodrop').closest('label');
     if (toggle) toggle.hidden = !hasDrop;
     $('opt-autodrop').checked = autodrop.enabled;
@@ -367,7 +363,6 @@ function init() {
     $('btn-redo').addEventListener('click', () => game.redo());
     $('btn-hint').addEventListener('click', showHint);
     $('btn-redeal').addEventListener('click', () => game.action('redeal'));
-    $('btn-drop').addEventListener('click', () => autodrop.start());
     $('opt-autodrop').addEventListener('change', e => {
         autodrop.setEnabled(e.target.checked);
         setSettings({ autoDrop: e.target.checked });

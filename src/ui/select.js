@@ -22,6 +22,9 @@ export function createSelect(root, items, onChange) {
     const label = root.querySelector('.select-label');
     const menu = root.querySelector('.select-menu');
 
+    // where the menu normally lives in the DOM, so it can be put back on close
+    const home = { parent: menu.parentNode, next: menu.nextSibling };
+
     let value = items[0] ? items[0].id : null;
     let active = 0;
     let open = false;
@@ -54,26 +57,64 @@ export function createSelect(root, items, onChange) {
     }
 
     function onOutside(e) {
-        if (!root.contains(e.target)) closeMenu();
+        if (!root.contains(e.target) && !menu.contains(e.target)) closeMenu();
+    }
+
+    // a scrollable toolbar (mobile) clips an absolutely-positioned menu, so while
+    // open it's moved to <body> and placed with `position: fixed` from the
+    // button's real screen position — scrolling the toolbar (or the page) would
+    // leave it stranded, so that just closes the menu instead, like a native popup
+    function onElsewhereScroll(e) {
+        if (menu.contains(e.target)) return;
+        closeMenu();
+    }
+
+    function positionMenu() {
+        const margin = 8;
+        const r = btn.getBoundingClientRect();
+        menu.style.minWidth = `${Math.round(r.width)}px`;
+        menu.style.left = `${Math.round(r.left)}px`;
+        menu.style.top = `${Math.round(r.bottom + 6)}px`;
+
+        const maxLeft = window.innerWidth - menu.offsetWidth - margin;
+        menu.style.left = `${Math.max(margin, Math.min(r.left, maxLeft))}px`;
+
+        const below = window.innerHeight - r.bottom - 6;
+        if (menu.offsetHeight > below && r.top - 6 > below) {
+            menu.style.top = `${Math.max(margin, Math.round(r.top - 6 - menu.offsetHeight))}px`;
+        }
     }
 
     function openMenu() {
         if (open) return;
         open = true;
+        document.body.appendChild(menu);
         menu.hidden = false;
+        menu.style.position = 'fixed';
+        positionMenu();
         btn.setAttribute('aria-expanded', 'true');
         const idx = items.findIndex(i => i.id === value);
         setActive(idx < 0 ? 0 : idx);
         document.addEventListener('pointerdown', onOutside, true);
+        window.addEventListener('scroll', onElsewhereScroll, true);
+        window.addEventListener('resize', closeMenu);
     }
 
     function closeMenu({ focusBtn = false } = {}) {
         if (!open) return;
         open = false;
         menu.hidden = true;
+        menu.style.position = '';
+        menu.style.left = '';
+        menu.style.top = '';
+        menu.style.minWidth = '';
+        if (home.next) home.parent.insertBefore(menu, home.next);
+        else home.parent.appendChild(menu);
         btn.setAttribute('aria-expanded', 'false');
         btn.removeAttribute('aria-activedescendant');
         document.removeEventListener('pointerdown', onOutside, true);
+        window.removeEventListener('scroll', onElsewhereScroll, true);
+        window.removeEventListener('resize', closeMenu);
         if (focusBtn) btn.focus();
     }
 
