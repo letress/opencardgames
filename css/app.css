@@ -33,9 +33,9 @@
 /* tmavý režim prohlížeče/systému: karty dostanou temný lícový podklad */
 @media (prefers-color-scheme: dark) {
     :root {
-        --ink: #e8e8e8;
-        --red: #ff6b6b;
-        --joker: #d08ae0;
+        --ink: #c6c9cd;
+        --red: #d9736f;
+        --joker: #b388c9;
         --card-bg: #26282b;
         --card-border: #46484c;
     }
@@ -127,6 +127,29 @@ dialog button:hover { background: #2a6142; }
     display: flex;
     gap: 12px;
     font-variant-numeric: tabular-nums;
+}
+
+/* bublina se změnou skóre: vždy na stejném místě vedle čísla skóre */
+.score-wrap { position: relative; display: inline-block; }
+
+.score-pop {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    margin-left: 6px;
+    transform: translateY(-50%) scale(.8);
+    font-weight: 800;
+    color: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity .4s ease, transform .4s ease;
+}
+.score-pop.neg { color: #ff8a80; }
+.score-pop.show {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+    transition: opacity .15s ease, transform .15s ease;
 }
 
 .statusbar {
@@ -410,10 +433,41 @@ dialog button { margin-top: 14px; }
     .statusbar { font-size: .75rem; }
 }
 
+/* ---------- úzké nebo nízké obrazovky (mobil, zejména naležato) ---------- */
+
+/* lišta se nezalamuje do víc řádků, ale rolovatelná vodorovně */
+@media (max-width: 700px), (max-height: 520px) {
+    .toolbar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+    .toolbar::-webkit-scrollbar { height: 4px; }
+    .toolbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .3); border-radius: 2px; }
+    .toolbar > * { flex: none; }
+    .info { white-space: nowrap; }
+}
+
+/* malá výška (mobil naležato): lišta i patička zaberou co nejméně místa */
+@media (max-height: 480px) {
+    .toolbar { padding: 4px 6px; gap: 4px; }
+    .toolbar button, .toolbar select, dialog button {
+        padding: 4px 10px;
+        min-height: 30px;
+        font-size: .85rem;
+    }
+    .toolbar .toggle { font-size: .8rem; gap: 4px; }
+    .statusbar { padding: 2px 6px; font-size: .68rem; }
+    .footer { display: none; }
+}
+
 /* ---------- omezení pohybu ---------- */
 
 @media (prefers-reduced-motion: reduce) {
     .board, .slot, .card { transition: none; }
     .board.entering { animation: none; }
     .card.hint, .slot.hint, .toolbar button.hint { animation: none; outline: 3px solid var(--accent); }
+    .score-pop, .score-pop.show { transform: translateY(-50%); }
 }

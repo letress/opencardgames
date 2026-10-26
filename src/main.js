@@ -1,11 +1,12 @@
 /*
- * kpat-web – webová verze KPatience (kpat)
- * Odvozeno z KDE KPatience: https://github.com/KDE/kpat
+ * kpat-web – a web version of KPatience (kpat)
+ * Derived from KDE KPatience: https://github.com/KDE/kpat
  *
- * Tento program je svobodný software; můžete jej šířit a/nebo upravovat
- * podle podmínek GNU General Public License, vydané Free Software Foundation,
- * a to buď ve verzi 2, nebo (podle vašeho uvážení) kterékoli pozdější verze.
- * Program je šířen BEZ JAKÉKOLI ZÁRUKY. Viz soubor LICENSE.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 2, or (at your option) any
+ * later version. This program is distributed WITHOUT ANY WARRANTY.
+ * See the LICENSE file.
  */
 
 import { Game } from './engine/game.js';
@@ -21,28 +22,30 @@ import fortyeight from './games/fortyeight.js';
 import victorian from './games/victorian.js';
 import sabine from './games/sabine.js';
 import pyramids from './games/pyramids.js';
+import tripeaks from './games/tripeaks.js';
 
-const NEXT_ROUND_DELAY = 1500;   // pauza mezi dokončeným kolem a rozdáním dalšího (ms)
+const NEXT_ROUND_DELAY = 1500;   // pause between a finished round and dealing the next one (ms)
+const SCORE_POP_HOLD_MS = 1500;  // how long the score bubble stays fully visible before fading
 
-/* Texty rozhraní na jednom místě (snadná lokalizace). */
+/* All interface text lives here (easy to localize). */
 const STRINGS = {
-    noMoves: 'Žádný další tah nenalezen.',
-    askSeed: 'Číslo rozdání (kladné celé číslo):',
-    winTitle: 'Gratulujeme!',
-    lostTitle: 'Konec hry',
-    roundDone: (n, score) => `Kolo ${n} dokončeno · body: ${score}`,
-    allRounds: score => `Dokončili jste všechna kola. Celkem bodů: ${score}.`,
-    stuckInRound: (round, score) => `Už nelze táhnout. Konec hry v kole ${round}. Celkem bodů: ${score}.`,
-    won: (n, score) => (score !== null ? `Vyhráli jste. Body: ${score}.` : `Vyhráli jste na ${n} tahů.`),
-    lost: score => (score !== null ? `Už nelze táhnout. Body: ${score}.` : 'Už nelze táhnout.'),
+    noMoves: 'No further moves found.',
+    askSeed: 'Deal number (positive integer):',
+    winTitle: 'Congratulations!',
+    lostTitle: 'Game Over',
+    roundDone: (n, score) => `Round ${n} complete · score: ${score}`,
+    allRounds: score => `You completed all rounds. Total score: ${score}.`,
+    stuckInRound: (round, score) => `No more moves. Game over in round ${round}. Total score: ${score}.`,
+    won: (n, score) => (score !== null ? `You won. Score: ${score}.` : `You won in ${n} moves.`),
+    lost: score => (score !== null ? `No more moves. Score: ${score}.` : 'No more moves.'),
     stats: s =>
-    `Odehráno: ${s.played} · Výher: ${s.won}` +
-    (s.played ? ` (${Math.round((100 * s.won) / s.played)} %)` : '') +
-    (s.bestScore != null ? ` · Nejvíc bodů: ${s.bestScore}` : ` · Nejméně tahů: ${s.bestMoves ?? '–'}`) +
-    ` · Série: ${s.streak} (max. ${s.bestStreak})`,
+    `Played: ${s.played} · Won: ${s.won}` +
+    (s.played ? ` (${Math.round((100 * s.won) / s.played)}%)` : '') +
+    (s.bestScore != null ? ` · Best score: ${s.bestScore}` : ` · Fewest moves: ${s.bestMoves ?? '–'}`) +
+    ` · Streak: ${s.streak} (best ${s.bestStreak})`,
 };
 
-const GAMES = [klondikeDraw1, klondikeDraw3, grandfather, fortyeight, victorian, sabine, pyramids];
+const GAMES = [klondikeDraw1, klondikeDraw3, grandfather, fortyeight, victorian, sabine, pyramids, tripeaks];
 const byId = id => GAMES.find(g => g.id === id) || GAMES[0];
 const $ = id => document.getElementById(id);
 
@@ -52,14 +55,16 @@ let autodrop = null;
 let unsubscribe = null;
 let winTimer = null;
 let hintEls = [];
-let over = false;          // hra skončila (výhra nebo uvíznutí), výsledek se zapíše jen jednou
-let pendingNext = false;   // kolo je dokončeno a za chvíli se samo rozdá další
+let over = false;          // the game has ended (won or stuck); the result is recorded only once
+let pendingNext = false;   // the round is cleared and the next one will deal itself shortly
+let lastScore = null;      // score at the last event, used to compute the +N/-N bubble
+let scorePopHideTimer = null;
 
 const scoreOf = g => (g.def.scoring ? (g.state.meta.score ?? 0) : null);
 
-/* ---------- životní cyklus hry ---------- */
+/* ---------- game lifecycle ---------- */
 
-/** Rozehranou, ale neskončenou hru zapíše jako prohru. */
+/** Records an in-progress, unfinished game as a loss. */
 function finalizeCurrent() {
     if (game && !game.won && !over && game.moves > 0) {
         recordResult(game.def.id, {
@@ -82,6 +87,7 @@ function openGame(def, { fresh = false } = {}) {
         const saved = loadGame(def.id);
         if (saved) loaded = game.load(saved);
     }
+    lastScore = scoreOf(game);
 
     if (!board) {
         board = new Board($('board'), game);
@@ -102,11 +108,11 @@ function openGame(def, { fresh = false } = {}) {
     updateUi();
 
     if (loaded) {
-        // uložená hra mohla být ukončena těsně po dokončení kola nebo uvíznutí
+        // a saved game may have ended right after clearing a round, or got stuck
         if (game.won) roundCleared();
         else checkLost();
     } else {
-        // Po nové hře se karty odkládají jako po každém rozdání; načtená hra se nechá být.
+        // after a fresh deal, auto-collect kicks in as usual; a loaded game is left alone
         autodrop.kick();
     }
 }
@@ -114,10 +120,10 @@ function openGame(def, { fresh = false } = {}) {
 function newDeal(seed) {
     finalizeCurrent();
     clearGame(game.def.id);
-    game.start(seed);        // událost 'start' se postará o uložení a překreslení
+    game.start(seed);        // the 'start' event takes care of saving and redrawing
 }
 
-/* ---------- události hry ---------- */
+/* ---------- game events ---------- */
 
 function onEvent({ type }) {
     clearHints();
@@ -128,6 +134,7 @@ function onEvent({ type }) {
         clearTimeout(winTimer);
         const dlg = $('win-dialog');
         if (dlg.open) dlg.close();
+        lastScore = scoreOf(game);
     }
 
     if (type === 'won') {
@@ -138,7 +145,29 @@ function onEvent({ type }) {
 
     autodrop.handleEvent(type);
     if (type !== 'won') checkLost();
+
+    if (game.def.scoring && type !== 'start') {
+        const score = scoreOf(game);
+        if ((type === 'click' || type === 'move') && lastScore !== null && score !== lastScore) {
+            showScorePopup(score - lastScore);
+        }
+        lastScore = score;
+    }
+
     updateUi();
+}
+
+/** Flashes a +N/-N bubble next to the score indicator (always the same spot). */
+function showScorePopup(delta) {
+    const pop = $('score-pop');
+    if (!pop) return;
+    clearTimeout(scorePopHideTimer);
+    pop.textContent = (delta > 0 ? '+' : '') + delta;
+    pop.classList.remove('show', 'pos', 'neg');
+    pop.classList.add(delta < 0 ? 'neg' : 'pos');
+    void pop.offsetWidth;                 // restart the animation if it is still running
+    pop.classList.add('show');
+    scorePopHideTimer = setTimeout(() => pop.classList.remove('show'), SCORE_POP_HOLD_MS);
 }
 
 function showDialog({ title, text, stats }) {
@@ -150,8 +179,8 @@ function showDialog({ title, text, stats }) {
 }
 
 /**
- * Všechny karty jsou odložené (u Pyramids: pyramidy jsou prázdné).
- * U vícekolové hry se po chvíli samo rozdá další kolo, po posledním kole hra končí.
+ * All cards have been played (for peak games: the tableau is empty).
+ * In a multi-round game, the next round deals itself shortly; the last round ends the game.
  */
 function roundCleared() {
     const def = game.def;
@@ -167,7 +196,7 @@ function roundCleared() {
     finishGame(true);
 }
 
-/** Konec hry: výhra (poslední kolo vyčištěno) nebo uvíznutí v kterémkoli kole. */
+/** Game over: won (last round cleared) or stuck in any round. */
 function finishGame(won) {
     const def = game.def;
     const score = scoreOf(game);
@@ -187,22 +216,24 @@ function finishGame(won) {
     }), won ? 1400 : 700);
 }
 
-/** Hry, které umějí poznat, že už nelze táhnout, končí. */
+/** Games that can detect a stuck position end here. */
 function checkLost() {
     if (over || pendingNext || game.won || !game.def.isLost || !game.def.isLost(game.state)) return;
     finishGame(false);
 }
 
-/* ---------- rozhraní ---------- */
+/* ---------- interface ---------- */
 
-/** Prvek se skóre; když chybí v index.html, vytvoří se. */
+/** The score element; created if it is missing from index.html. */
 function scoreBox() {
     let box = $('score-box');
     if (!box) {
         box = document.createElement('span');
         box.id = 'score-box';
         box.hidden = true;
-        box.innerHTML = 'Body: <span id="score">0</span> · Kolo: <span id="round">1</span>/<span id="rounds">3</span>';
+        box.innerHTML = 'Score: <span class="score-wrap"><span id="score">0</span>' +
+        '<span id="score-pop" class="score-pop" aria-hidden="true"></span></span>' +
+        '<span id="round-info"> · Round: <span id="round">1</span>/<span id="rounds">3</span></span>';
         (document.querySelector('.info') || document.body).appendChild(box);
     }
     return box;
@@ -225,10 +256,14 @@ function updateUi() {
     scoreBox().hidden = !scoring;
     if (scoring) {
         $('score').textContent = String(game.state.meta.score ?? 0);
-        const r = $('round');
-        const rs = $('rounds');
-        if (r) r.textContent = String(game.state.meta.round ?? 1);
-        if (rs) rs.textContent = String(def.rounds ?? 1);
+        const roundInfo = $('round-info');
+        if (roundInfo) roundInfo.hidden = !def.rounds;
+        if (def.rounds) {
+            const r = $('round');
+            const rs = $('rounds');
+            if (r) r.textContent = String(game.state.meta.round ?? 1);
+            if (rs) rs.textContent = String(def.rounds);
+        }
     }
 
     const hasRedeal = !!(def.actions && def.actions.redeal);
@@ -238,7 +273,7 @@ function updateUi() {
         $('btn-redeal').title = `${Math.max(0, 3 - (game.state.meta.deals ?? 3))}×`;
     }
 
-    // odkládání na základny má smysl jen u her, které ho umějí
+    // auto-collecting onto foundations only makes sense for games that support it
     const hasDrop = !!def.dropCandidates;
     $('btn-drop').hidden = !hasDrop;
     const toggle = $('opt-autodrop').closest('label');
@@ -259,7 +294,7 @@ function flash(el) {
     setTimeout(() => el.classList.remove('hint'), 1400);
 }
 
-/* ---------- nápověda ---------- */
+/* ---------- hints ---------- */
 
 function clearHints() {
     for (const el of hintEls) el.classList.remove('hint-on');
@@ -269,7 +304,7 @@ function clearHints() {
 function showHint() {
     clearHints();
 
-    // zvýraznit všechny karty, které lze někam přesunout
+    // highlight every card that can be moved somewhere
     const seen = new Set();
     for (const h of game.hints()) {
         if (seen.has(h.card.id)) continue;
@@ -282,7 +317,7 @@ function showHint() {
     }
     if (hintEls.length) return;
 
-    // žádný přesun: nabídnout dobrání z talonu nebo rozdání znovu
+    // no move available: offer drawing from the stock, or a redeal
     const layout = game.def.layout;
     const stockId = Object.keys(layout).find(id => layout[id].type === 'stock');
     if (stockId && game.canDeal()) {
@@ -304,7 +339,29 @@ function askSeed() {
     if (Number.isFinite(n) && n > 0) newDeal(n);
 }
 
-/* ---------- inicializace ---------- */
+/* ---------- full screen ---------- */
+
+function initFullscreen() {
+    const btn = $('btn-fullscreen');
+    if (!document.fullscreenEnabled) {
+        btn.hidden = true;
+        return;
+    }
+    const sync = () => {
+        const on = !!document.fullscreenElement;
+        btn.textContent = on ? '⤓' : '⛶';
+        btn.title = on ? 'Exit full screen' : 'Full screen';
+        btn.setAttribute('aria-pressed', String(on));
+    };
+    btn.addEventListener('click', () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen().catch(() => {});
+    });
+    document.addEventListener('fullscreenchange', sync);
+    sync();
+}
+
+/* ---------- initialization ---------- */
 
 function init() {
     const select = $('game-select');
@@ -330,12 +387,14 @@ function init() {
         if (e.target.checked) autodrop.kick();
     });
 
+    initFullscreen();
+
         $('win-new').addEventListener('click', () => {
             $('win-dialog').close();
             newDeal();
         });
 
-        // Jakýkoli dotyk uživatele zruší zvýraznění a přeruší běžící odkládání (DealerScene::stop()).
+        // Any user touch clears hints and stops a running auto-collect (DealerScene::stop()).
         document.addEventListener('pointerdown', () => {
             clearHints();
             if (autodrop) autodrop.stop();

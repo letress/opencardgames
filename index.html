@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <!--
-kpat-web – webová verze KPatience (kpat)
-Odvozeno z KDE KPatience: https://github.com/KDE/kpat
+kpat-web – a web version of KPatience (kpat)
+Derived from KDE KPatience: https://github.com/KDE/kpat
 
-Tento program je svobodný software; můžete jej šířit a/nebo upravovat
-podle podmínek GNU General Public License, vydané Free Software Foundation,
-a to buď ve verzi 2, nebo (podle vašeho uvážení) kterékoli pozdější verze.
-Program je šířen BEZ JAKÉKOLI ZÁRUKY. Viz soubor LICENSE.
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 2, or (at your option) any
+later version. This program is distributed WITHOUT ANY WARRANTY.
+See the LICENSE file.
 -->
-<html lang="cs">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -22,27 +23,29 @@ Program je šířen BEZ JAKÉKOLI ZÁRUKY. Viz soubor LICENSE.
 <div class="app">
 
 <header class="toolbar">
-<label class="sr-only" for="game-select">Hra</label>
-<select id="game-select" aria-label="Hra"></select>
+<label class="sr-only" for="game-select">Game</label>
+<select id="game-select" aria-label="Game"></select>
 
-<button id="btn-new" type="button">Nová hra</button>
+<button id="btn-new" type="button">New Game</button>
 <button id="btn-restart" type="button">Restart</button>
-<button id="btn-seed" type="button" title="Zadat číslo rozdání">#</button>
-<button id="btn-undo" type="button" title="Zpět (Ctrl+Z)" disabled>Zpět</button>
-<button id="btn-redo" type="button" title="Vpřed (Ctrl+Y)" disabled>Vpřed</button>
-<button id="btn-hint" type="button" title="Tip (H)">Tip</button>
-<button id="btn-redeal" type="button" hidden>Rozdat znovu</button>
-<button id="btn-drop" type="button" title="Odložit karty na základny">Odložit</button>
-<label class="toggle" title="Karty se samy odkládají na základny">
-<input type="checkbox" id="opt-autodrop"> Auto-odkládání
+<button id="btn-seed" type="button" title="Enter deal number">#</button>
+<button id="btn-undo" type="button" title="Undo (Ctrl+Z)" disabled>Undo</button>
+<button id="btn-redo" type="button" title="Redo (Ctrl+Y)" disabled>Redo</button>
+<button id="btn-hint" type="button" title="Hint (H)">Hint</button>
+<button id="btn-redeal" type="button" hidden>Redeal</button>
+<button id="btn-drop" type="button" title="Play all possible cards to the foundations">Collect</button>
+<label class="toggle" title="Cards are automatically played to the foundations">
+<input type="checkbox" id="opt-autodrop"> Auto-collect
 </label>
 
 <span class="spacer"></span>
 
+<button id="btn-fullscreen" type="button" title="Full screen">⛶</button>
+
 <div class="info" aria-live="off">
-<span>Tahy: <span id="moves">0</span></span>
-<span>Rozdání: <span id="seed">#0</span></span>
-<span id="score-box" hidden>Body: <span id="score">0</span> · Kolo: <span id="round">1</span>/<span id="rounds">3</span></span>
+<span>Moves: <span id="moves">0</span></span>
+<span>Deal: <span id="seed">#0</span></span>
+<span id="score-box" hidden>Score: <span class="score-wrap"><span id="score">0</span><span id="score-pop" class="score-pop" aria-hidden="true"></span></span><span id="round-info"> · Round: <span id="round">1</span>/<span id="rounds">3</span></span></span>
 </div>
 </header>
 
@@ -52,23 +55,23 @@ Program je šířen BEZ JAKÉKOLI ZÁRUKY. Viz soubor LICENSE.
 </div>
 
 <main class="board-wrap">
-<div id="board" class="board" aria-label="Herní plocha"></div>
-<noscript>Pro hraní je potřeba JavaScript.</noscript>
+<div id="board" class="board" aria-label="Game board"></div>
+<noscript>JavaScript is required to play.</noscript>
 </main>
 
 <footer class="footer">
-Webová verze odvozená z
+A web version derived from
 <a href="https://github.com/KDE/kpat" rel="noopener">KDE KPatience</a>.
-Licence: GNU GPL v2 nebo novější. Zdrojový kód je dostupný v repozitáři projektu.
+License: GNU GPL v2 or later. Source code is available in the project repository.
 </footer>
 
 </div>
 
 <dialog id="win-dialog" aria-labelledby="win-title">
-<h2 id="win-title">Gratulujeme!</h2>
+<h2 id="win-title">Congratulations!</h2>
 <p id="win-text"></p>
 <p id="win-stats"></p>
-<button id="win-new" type="button">Nová hra</button>
+<button id="win-new" type="button">New Game</button>
 </dialog>
 
 <script>
@@ -82,19 +85,19 @@ Licence: GNU GPL v2 nebo novější. Zdrojový kód je dostupný v repozitáři 
     }
     window.__banner = banner;
     if (location.protocol === 'file:') {
-        banner('Stránka je otevřena přes file://, moduly ES se tak nenačtou.\n' +
-        'Spusťte v kořeni projektu: python3 -m http.server 8000\n' +
-        'a otevřete http://localhost:8000');
+        banner('This page was opened via file://, so ES modules will not load.\n' +
+        'Run this in the project root: python3 -m http.server 8000\n' +
+        'and open http://localhost:8000');
     }
     window.addEventListener('error', function (e) {
-        banner('Chyba: ' + e.message + '\n' + (e.filename || '') + ':' + (e.lineno || ''));
+        banner('Error: ' + e.message + '\n' + (e.filename || '') + ':' + (e.lineno || ''));
     });
     window.addEventListener('unhandledrejection', function (e) {
-        banner('Chyba (promise): ' + ((e.reason && e.reason.message) || e.reason));
+        banner('Error (promise): ' + ((e.reason && e.reason.message) || e.reason));
     });
 })();
 </script>
 <script type="module" src="src/main.js"
-onerror="__banner('Nepodařilo se načíst src/main.js nebo některý z jeho importů. Otevřete konzoli (F12) a zkontrolujte první červenou chybu.')"></script>
+onerror="__banner('Failed to load src/main.js or one of its imports. Open the console (F12) and check the first red error.')"></script>
 </body>
 </html>
