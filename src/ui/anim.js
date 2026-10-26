@@ -38,6 +38,12 @@ typeof CSS !== 'undefined' && CSS.supports && CSS.supports('animation-timing-fun
 
 export const EASING = springSupported ? makeSpring() : EASING_SMOOTH;
 
+// Sdílí stejnou pružinovou křivku s CSS (tlačítka, dialog, rozbalovací seznam…),
+// takže veškerý pohyb v aplikaci — ať řízený JS, nebo čistě CSS přechodem — působí jednotně.
+if (typeof document !== 'undefined') {
+    document.documentElement.style.setProperty('--spring', EASING);
+}
+
 const reducedMotionQuery =
 typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
 

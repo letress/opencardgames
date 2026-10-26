@@ -46,6 +46,9 @@
 
     --blur: blur(26px) saturate(180%);
     --ease: cubic-bezier(.22, 1, .36, 1);
+    /* a gentle, slightly underdamped spring (see ui/anim.js); every interactive
+       transition in the app shares this one curve so nothing feels mismatched */
+    --spring: var(--ease);
     --radius: 14px;
 
     color-scheme: dark;
@@ -138,7 +141,7 @@ dialog button {
     min-height: 36px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: background .15s ease, transform .1s ease, opacity .15s ease;
+    transition: background .15s ease, transform .4s var(--spring), opacity .15s ease;
 }
 
 .toolbar button:hover:not(:disabled),
@@ -147,7 +150,11 @@ dialog button:hover { background: var(--control-hover); }
 
 .toolbar button:active:not(:disabled),
 .select-btn:active,
-dialog button:active { background: var(--control-press); transform: scale(.96); }
+dialog button:active {
+    background: var(--control-press);
+    transform: scale(.96);
+    transition: background .15s ease, transform .08s ease, opacity .15s ease;
+}
 
 .toolbar button:disabled { opacity: .38; cursor: default; }
 .toolbar button[hidden] { display: none; }
@@ -194,7 +201,7 @@ dialog button:active { background: var(--control-press); transform: scale(.96); 
     height: 12px;
     flex: none;
     color: var(--panel-text-dim);
-    transition: transform .2s var(--ease);
+    transition: transform .4s var(--spring);
 }
 .select-btn[aria-expanded="true"] .select-chevron { transform: rotate(180deg); }
 
@@ -216,12 +223,12 @@ dialog button:active { background: var(--control-press); transform: scale(.96); 
     border-radius: 14px;
     box-shadow: 0 18px 44px rgba(0, 0, 0, .4);
     transform-origin: top left;
-    animation: select-in .16s var(--ease);
+    animation: select-in .38s var(--spring);
 }
 .select-menu[hidden] { display: none; }
 
 @keyframes select-in {
-    from { opacity: 0; transform: scale(.95) translateY(-4px); }
+    from { opacity: 0; transform: scale(.93) translateY(-6px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -542,7 +549,7 @@ dialog button:active { background: var(--control-press); transform: scale(.96); 
 .score-pop.show {
     opacity: 1;
     transform: translate(-50%, -100%) scale(1);
-    transition: opacity .15s ease, transform .15s ease;
+    transition: opacity .15s ease, transform .5s var(--spring);
 }
 
 @keyframes pulse {
@@ -563,8 +570,36 @@ dialog {
     max-width: min(92vw, 420px);
     text-align: center;
     box-shadow: 0 24px 64px rgba(0, 0, 0, .45);
+
+    /* closed state (also the exit target); opens/closes with the same gentle
+       spring as everything else instead of just snapping on/off screen */
+    opacity: 0;
+    transform: scale(.92) translateY(14px);
+    transition:
+    opacity .3s var(--ease),
+    transform .5s var(--spring),
+    overlay .5s allow-discrete,
+    display .5s allow-discrete;
 }
-dialog::backdrop { background: rgba(0, 0, 0, .4); backdrop-filter: blur(3px); }
+dialog[open] {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+@starting-style {
+    dialog[open] { opacity: 0; transform: scale(.92) translateY(14px); }
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, .4);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    transition: opacity .3s var(--ease), display .3s allow-discrete, overlay .3s allow-discrete;
+}
+dialog[open]::backdrop { opacity: 1; }
+@starting-style {
+    dialog[open]::backdrop { opacity: 0; }
+}
+
 dialog h2 { margin: 0 0 8px; font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
 dialog p { margin: 6px 0; color: var(--panel-text-dim); }
 dialog button { margin-top: 16px; padding: 10px 22px; }
@@ -657,4 +692,8 @@ dialog button { margin-top: 16px; padding: 10px 22px; }
     .board.entering { animation: none; }
     .card.hint, .slot.hint, .toolbar button.hint { animation: none; outline: 2.5px solid var(--hint); }
     .score-pop, .score-pop.show { transform: translate(-50%, -100%); }
+    .select-menu { animation: none; }
+    .toolbar button, .select-btn, dialog button, .select-chevron { transition: background .15s ease, opacity .15s ease; }
+    dialog, dialog::backdrop { transition: opacity .15s ease; }
+    dialog, dialog[open] { transform: none; }
 }
