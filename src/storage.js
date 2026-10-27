@@ -117,6 +117,7 @@ const DEFAULT_SETTINGS = {
     lastGame: 'klondike',
     animations: true,
     autoDrop: true,
+    theme: 'auto',   // 'auto' | 'light' | 'dark'
 };
 
 export function getSettings() {

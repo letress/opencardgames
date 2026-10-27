@@ -24,6 +24,10 @@ import victorian from './games/victorian.js';
 import sabine from './games/sabine.js';
 import pyramids from './games/pyramids.js';
 import tripeaks from './games/tripeaks.js';
+import { RULES } from './rules-text.js';
+
+// applied as early as possible, before the first card paints, to avoid a flash of the wrong theme
+document.documentElement.dataset.theme = getSettings().theme;
 
 const NEXT_ROUND_DELAY = 1500;   // pause between a finished round and dealing the next one (ms)
 
@@ -329,6 +333,60 @@ function askSeed() {
     if (Number.isFinite(n) && n > 0) newDeal(n);
 }
 
+/* ---------- light/dark theme ---------- */
+
+const THEME_CYCLE = ['auto', 'light', 'dark'];
+const THEME_ICON = { auto: '◐', light: '☀', dark: '☾' };
+const THEME_LABEL = { auto: 'matching system', light: 'light', dark: 'dark' };
+
+function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    const btn = $('btn-theme');
+    btn.textContent = THEME_ICON[theme];
+    btn.title = `Theme: ${THEME_LABEL[theme]} (click to change)`;
+}
+
+function initTheme() {
+    applyTheme(getSettings().theme);
+    $('btn-theme').addEventListener('click', () => {
+        const next = THEME_CYCLE[(THEME_CYCLE.indexOf(getSettings().theme) + 1) % THEME_CYCLE.length];
+        setSettings({ theme: next });
+        applyTheme(next);
+    });
+}
+
+/* ---------- rules ---------- */
+
+/** Builds the rules dialog body for a game from RULES (see rules-text.js). */
+function showRules() {
+    const info = RULES[game.def.id];
+    if (!info) return;
+
+    $('rules-title').textContent = `How to play ${info.name}`;
+    const body = $('rules-body');
+    body.innerHTML = '';
+    for (const block of info.blocks) {
+        if (block.h) {
+            const h = document.createElement('h3');
+            h.textContent = block.h;
+            body.appendChild(h);
+        } else if (block.ul) {
+            const ul = document.createElement('ul');
+            for (const item of block.ul) {
+                const li = document.createElement('li');
+                li.textContent = item;
+                ul.appendChild(li);
+            }
+            body.appendChild(ul);
+        } else if (block.p) {
+            const p = document.createElement('p');
+            p.textContent = block.p;
+            body.appendChild(p);
+        }
+    }
+    $('rules-dialog').showModal();
+}
+
 /* ---------- full screen ---------- */
 
 function initFullscreen() {
@@ -367,12 +425,15 @@ function init() {
     $('btn-redo').addEventListener('click', () => game.redo());
     $('btn-hint').addEventListener('click', showHint);
     $('btn-redeal').addEventListener('click', () => game.action('redeal'));
+    $('btn-rules').addEventListener('click', showRules);
+    $('rules-close').addEventListener('click', () => $('rules-dialog').close());
     $('opt-autodrop').addEventListener('change', e => {
         autodrop.setEnabled(e.target.checked);
         setSettings({ autoDrop: e.target.checked });
         if (e.target.checked) autodrop.kick();
     });
 
+    initTheme();
     initFullscreen();
 
         $('win-new').addEventListener('click', () => {

@@ -39,12 +39,14 @@ See the LICENSE file.
 <button id="btn-redo" type="button" title="Redo (Ctrl+Y)" disabled>Redo</button>
 <button id="btn-hint" type="button" title="Hint (H)">Hint</button>
 <button id="btn-redeal" type="button" hidden>Redeal</button>
+<button id="btn-rules" type="button" title="How to play this game">Rules</button>
 <label class="toggle" title="Cards are automatically played to the foundations">
 <input type="checkbox" id="opt-autodrop"> Auto-collect
 </label>
 
 <span class="spacer"></span>
 
+<button id="btn-theme" type="button" title="Theme: matching system">◐</button>
 <button id="btn-fullscreen" type="button" title="Full screen">⛶</button>
 
 <div class="info" aria-live="off">
@@ -81,6 +83,12 @@ License: GNU GPL v2 or later. Source code is available in the project repository
 <p id="win-text"></p>
 <p id="win-stats"></p>
 <button id="win-new" type="button">New Game</button>
+</dialog>
+
+<dialog id="rules-dialog" aria-labelledby="rules-title">
+<h2 id="rules-title"></h2>
+<div id="rules-body" class="rules-body"></div>
+<button id="rules-close" type="button">Close</button>
 </dialog>
 
 <script>
