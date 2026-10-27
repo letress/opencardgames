@@ -33,7 +33,8 @@ import {
  *  afterDrop(state, move)          volitelné
  *  afterMove(state)                volitelné
  *  isWon(state)                    povinné
- *  isLost(state)                   volitelné; true = už nelze táhnout
+ *  isLost(state)                   volitelné; true = už nelze táhnout (jinak Game.isLost()
+ *                                  obecně zkusí hints()/canDeal()/akce, viz níže)
  *  noUndo                          volitelné; true = bez kroku zpět a vpřed
  *  scoring                         volitelné; true = hra má skóre (state.meta.score)
  *  rounds, carryOver(state)        volitelné; vícekolová hra a co se přenáší do dalšího kola
@@ -283,6 +284,27 @@ import {
      #isConnected(pileId, below, moving) {
      const tmp = { piles: { ...this.state.piles, [pileId]: below }, meta: this.state.meta };
      return !!this.def.canDrop(tmp, moving, pileId, pileId);
+     }
+
+     /**
+      * Je hra uvíznutá, tj. nelze už žádným způsobem pokračovat (obdoba
+      * DealerScene::isGameLost() z kpat)? Hra sama definuje `isLost`, pokud
+      * umí poznat konkrétní prohranou pozici (např. Pyramids); jinak se bere
+      * obecně: nenajde-li se žádný tah (stejná analýza jako u tlačítka Tip),
+      * nedá se dobrat z talonu a není možná žádná akce (např. nové rozdání),
+      * hra už nemůže pokračovat.
+      */
+     isLost() {
+     if (this.won) return false;
+     if (this.def.isLost) return !!this.def.isLost(this.state);
+     if (this.hints().length > 0) return false;
+     if (this.canDeal()) return false;
+     if (this.def.actions) {
+         for (const name of Object.keys(this.def.actions)) {
+             if (this.canAction(name)) return false;
+         }
+     }
+     return true;
      }
 
      get canUndo() { return !this.def.noUndo && this.history.canUndo; }

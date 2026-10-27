@@ -32,12 +32,16 @@ const STRINGS = {
     noMoves: 'No further moves found.',
     askSeed: 'Deal number (positive integer):',
     winTitle: 'Congratulations!',
-    lostTitle: 'Game Over',
+    lostTitle: "It's no longer possible to win",
     roundDone: (n, score) => `Round ${n} complete · score: ${score}`,
     allRounds: score => `You completed all rounds. Total score: ${score}.`,
-    stuckInRound: (round, score) => `No more moves. Game over in round ${round}. Total score: ${score}.`,
+    stuckInRound: (round, score) =>
+    `It's no longer possible to win. Game over in round ${round}. Total score: ${score}.`,
     won: (n, score) => (score !== null ? `You won. Score: ${score}.` : `You won in ${n} moves.`),
-    lost: score => (score !== null ? `No more moves. Score: ${score}.` : 'No more moves.'),
+    lost: score =>
+    (score !== null
+     ? `It's no longer possible to win. Score: ${score}.`
+     : "It's no longer possible to win."),
     stats: s =>
     `Played: ${s.played} · Won: ${s.won}` +
     (s.played ? ` (${Math.round((100 * s.won) / s.played)}%)` : '') +
@@ -202,11 +206,11 @@ function finishGame(won) {
     }), won ? 1400 : 700);
 }
 
-/** Games that can detect a stuck position end here. */
+/** Ends the game once it's no longer possible to win (Game.isLost — see engine/game.js). */
 function checkLost() {
     // a move can clear the board (win) before Game.won is updated; never call that "stuck"
     if (over || pendingNext || game.won || game.def.isWon(game.state)) return;
-    if (!game.def.isLost || !game.def.isLost(game.state)) return;
+    if (!game.isLost()) return;
     finishGame(false);
 }
 
