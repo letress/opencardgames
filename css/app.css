@@ -17,9 +17,12 @@
 }
 
 :root {
-    /* table */
+    /* table: a near-black graphite canvas with two soft, diffuse colour blooms
+       (indigo echoing the card back, green keeping a quiet felt-table identity)
+       instead of a flat saturated green — so cards of any colour read clearly
+       against it, in any mode */
     --felt: #1e7a4a;
-    --felt-dark: #04140c;
+    --felt-dark: #0b0c10;
 
     /* card face */
     --ink: #1c1c1e;
@@ -60,8 +63,8 @@
         --ink: #c7c7cc;
         --red: #e0615a;
         --joker: #c68cf0;
-        --card-bg: #1c1c1e;
-        --card-border: rgba(255, 255, 255, .12);
+        --card-bg: #242428;
+        --card-border: rgba(255, 255, 255, .14);
     }
 }
 
@@ -72,7 +75,10 @@ html, body {
     margin: 0;
     overflow: hidden;
     background:
-    radial-gradient(ellipse 120% 70% at 50% -10%, color-mix(in srgb, var(--felt) 70%, white 6%) 0%, var(--felt) 38%, var(--felt-dark) 100%) fixed;
+    radial-gradient(ellipse 65% 55% at 14% -10%, rgba(94, 92, 230, .32) 0%, rgba(94, 92, 230, 0) 60%),
+    radial-gradient(ellipse 80% 65% at 92% 112%, color-mix(in srgb, var(--felt) 65%, transparent) 0%, rgba(30, 122, 74, 0) 62%),
+    radial-gradient(ellipse 150% 100% at 50% -4%, #202024 0%, var(--felt-dark) 55%, #000000 100%)
+    fixed;
     color: var(--panel-text);
     font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -436,22 +442,29 @@ dialog button:active {
     border: 1px solid var(--card-border);
 }
 
-/* card back: a deep, understated emerald with a thin gold medallion — a quiet
-   nod to the felt table instead of a loud, generic neon-blue gradient */
+@media (prefers-color-scheme: dark) {
+    /* a dark face on a dark, green table needs a touch more lift to read clearly */
+    .card .front { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .03); }
+}
+
+/* card back: a deep graphite/indigo finish (think Apple's "Midnight") with a
+   soft two-tone sheen and a thin gold medallion — deliberately a different
+   hue family from the green felt, so face-down cards never melt into the table */
 .card .back {
     transform: rotateY(180deg);
     background:
-    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .07) 0%, rgba(255, 255, 255, 0) 45%),
-    linear-gradient(155deg, #1d4b37 0%, #0d2a1e 58%, #04120b 100%);
+    radial-gradient(circle at 26% 18%, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 42%),
+    radial-gradient(circle at 82% 88%, rgba(255, 214, 10, .12) 0%, rgba(255, 214, 10, 0) 50%),
+    linear-gradient(152deg, #4c4f78 0%, #24263c 52%, #0a0a14 100%);
     border: calc(var(--cw) * .045) solid var(--card-bg);
 }
 .card .back::before {
     content: "";
     position: absolute;
     inset: 16%;
-    border: 1px solid rgba(255, 214, 10, .34);
+    border: 1px solid rgba(255, 214, 10, .4);
     border-radius: 999px;
-    box-shadow: inset 0 0 0 1px rgba(255, 214, 10, .14);
+    box-shadow: inset 0 0 0 1px rgba(255, 214, 10, .16);
 }
 
 /* corner: rank and suit side by side, so a thin sliver of the card is enough */
