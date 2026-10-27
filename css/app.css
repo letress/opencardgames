@@ -29,6 +29,10 @@
     --joker: #af52de;
     --card-bg: #ffffff;
     --card-border: rgba(0, 0, 0, .08);
+    /* fixed (not theme-dependent): the back's own rim colour, so it stays
+       visible against the background in dark mode instead of nearly
+       matching it the way --card-bg would */
+    --card-back-rim: #f0f0f3;
 
     /* system accents */
     --tint: #0a84ff;
@@ -476,7 +480,7 @@ dialog button:active {
     radial-gradient(circle at 26% 18%, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 42%),
     radial-gradient(circle at 82% 88%, rgba(255, 214, 10, .12) 0%, rgba(255, 214, 10, 0) 50%),
     linear-gradient(152deg, #4c4f78 0%, #24263c 52%, #0a0a14 100%);
-    border: calc(var(--cw) * .045) solid var(--card-bg);
+    border: calc(var(--cw) * .045) solid var(--card-back-rim);
 }
 .card .back::before {
     content: "";
