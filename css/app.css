@@ -17,12 +17,11 @@
 }
 
 :root {
-    /* table: a near-black graphite canvas with two soft, diffuse colour blooms
-       (indigo echoing the card back, green keeping a quiet felt-table identity)
-       instead of a flat saturated green — so cards of any colour read clearly
-       against it, in any mode */
+    /* table: a muted, multi-tone "aurora" canvas (indigo, blue, green, violet)
+       instead of a flat saturated green or a plain green-to-black fade — so
+       cards of any colour still read clearly against it, in any mode */
     --felt: #1e7a4a;
-    --felt-dark: #0b0c10;
+    --felt-dark: #15181f;
 
     /* card face */
     --ink: #1c1c1e;
@@ -63,8 +62,8 @@
         --ink: #c7c7cc;
         --red: #e0615a;
         --joker: #c68cf0;
-        --card-bg: #242428;
-        --card-border: rgba(255, 255, 255, .14);
+        --card-bg: #2e2e34;
+        --card-border: rgba(255, 255, 255, .15);
     }
 }
 
@@ -75,9 +74,11 @@ html, body {
     margin: 0;
     overflow: hidden;
     background:
-    radial-gradient(ellipse 65% 55% at 14% -10%, rgba(94, 92, 230, .32) 0%, rgba(94, 92, 230, 0) 60%),
-    radial-gradient(ellipse 80% 65% at 92% 112%, color-mix(in srgb, var(--felt) 65%, transparent) 0%, rgba(30, 122, 74, 0) 62%),
-    radial-gradient(ellipse 150% 100% at 50% -4%, #202024 0%, var(--felt-dark) 55%, #000000 100%)
+    radial-gradient(ellipse 60% 55% at 10% -6%, rgba(94, 92, 230, .4) 0%, rgba(94, 92, 230, 0) 62%),
+    radial-gradient(ellipse 55% 50% at 85% -8%, rgba(10, 132, 255, .32) 0%, rgba(10, 132, 255, 0) 60%),
+    radial-gradient(ellipse 75% 65% at 95% 105%, color-mix(in srgb, var(--felt) 70%, transparent) 0%, rgba(30, 122, 74, 0) 65%),
+    radial-gradient(ellipse 65% 55% at 2% 108%, rgba(191, 90, 242, .28) 0%, rgba(191, 90, 242, 0) 60%),
+    linear-gradient(160deg, #23263a 0%, #1b1e2c 45%, var(--felt-dark) 100%)
     fixed;
     color: var(--panel-text);
     font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
