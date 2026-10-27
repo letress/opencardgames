@@ -28,7 +28,7 @@
     --red: #ff3b30;
     --joker: #af52de;
     --card-bg: #ffffff;
-    --card-border: rgba(0, 0, 0, .08);
+    --card-border: rgba(0, 0, 0, .22);
     /* fixed (not theme-dependent): the back's own rim colour, so it stays
        visible against the background in dark mode instead of nearly
        matching it the way --card-bg would */
@@ -68,7 +68,7 @@
         --red: #e0615a;
         --joker: #c68cf0;
         --card-bg: #3a3a40;
-        --card-border: rgba(255, 255, 255, .17);
+        --card-border: rgba(255, 255, 255, .38);
     }
 }
 
@@ -77,7 +77,7 @@
     --red: #e0615a;
     --joker: #c68cf0;
     --card-bg: #3a3a40;
-    --card-border: rgba(255, 255, 255, .17);
+    --card-border: rgba(255, 255, 255, .38);
 }
 
 :root[data-theme="light"] {
@@ -85,7 +85,7 @@
     --red: #ff3b30;
     --joker: #af52de;
     --card-bg: #ffffff;
-    --card-border: rgba(0, 0, 0, .08);
+    --card-border: rgba(0, 0, 0, .22);
 }
 
 * { box-sizing: border-box; }
@@ -462,7 +462,7 @@ dialog button:active {
 
 .card .front {
     background: var(--card-bg);
-    border: 1px solid var(--card-border);
+    border: 1.5px solid var(--card-border);
 }
 
 @media (prefers-color-scheme: dark) {
