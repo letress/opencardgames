@@ -67,6 +67,7 @@ let hintEls = [];
 let over = false;          // the game has ended (won or stuck); the result is recorded only once
 let pendingNext = false;   // the round is cleared and the next one will deal itself shortly
 let lastScore = null;      // score at the last event, used to compute the +N/-N bubble
+let lostCheckToken = 0;    // cancels a stale, still-pending isLost() check (see scheduleLostCheck)
 
 const scoreOf = g => (g.def.scoring ? (g.state.meta.score ?? 0) : null);
 
@@ -115,7 +116,7 @@ function openGame(def, { fresh = false } = {}) {
     if (loaded) {
         // a saved game may have ended right after clearing a round, or got stuck
         if (game.won) roundCleared();
-        else checkLost();
+        else scheduleLostCheck();
     } else {
         // after a fresh deal, auto-collect kicks in as usual; a loaded game is left alone
         autodrop.kick();
@@ -149,7 +150,7 @@ function onEvent({ type }) {
     }
 
     autodrop.handleEvent(type);
-    if (type !== 'won') checkLost();
+    if (type !== 'won') scheduleLostCheck();
 
     if (game.def.scoring && type !== 'start') {
         const score = scoreOf(game);
@@ -216,6 +217,23 @@ function checkLost() {
     if (over || pendingNext || game.won || game.def.isWon(game.state)) return;
     if (!game.isLost()) return;
     finishGame(false);
+}
+
+const runWhenIdle = typeof requestIdleCallback === 'function'
+? cb => requestIdleCallback(cb, { timeout: 600 })
+: cb => setTimeout(cb, 0);
+
+/**
+ * Game.isLost() searches the reachable state space, which can take a while
+ * on a healthy (non-stuck) position — scheduled off the interaction/render
+ * path so it never makes a move feel laggy. If several moves happen before
+ * it gets a turn, only the latest one actually runs the check.
+ */
+function scheduleLostCheck() {
+    const token = ++lostCheckToken;
+    runWhenIdle(() => {
+        if (token === lostCheckToken) checkLost();
+    });
 }
 
 /* ---------- interface ---------- */

@@ -11,6 +11,7 @@
 import {
     createState, cloneState, createRng, randomSeed, findCard, History,
 } from './state.js';
+import { isDeadEnd } from './solver.js';
 
 /*
  * KONTRAKT DEFINICE HRY (objekt exportovaný ze src/games/*.js)
@@ -33,8 +34,8 @@ import {
  *  afterDrop(state, move)          volitelné
  *  afterMove(state)                volitelné
  *  isWon(state)                    povinné
- *  isLost(state)                   volitelné; true = už nelze táhnout (jinak Game.isLost()
- *                                  obecně zkusí hints()/canDeal()/akce, viz níže)
+ *  isLost(state)                   volitelné; true = už nelze vyhrát (jinak Game.isLost()
+ *                                  obecně prohledá dosažitelný stavový prostor, viz solver.js)
  *  noUndo                          volitelné; true = bez kroku zpět a vpřed
  *  scoring                         volitelné; true = hra má skóre (state.meta.score)
  *  rounds, carryOver(state)        volitelné; vícekolová hra a co se přenáší do dalšího kola
@@ -287,24 +288,19 @@ import {
      }
 
      /**
-      * Je hra uvíznutá, tj. nelze už žádným způsobem pokračovat (obdoba
-      * DealerScene::isGameLost() z kpat)? Hra sama definuje `isLost`, pokud
-      * umí poznat konkrétní prohranou pozici (např. Pyramids); jinak se bere
-      * obecně: nenajde-li se žádný tah (stejná analýza jako u tlačítka Tip),
-      * nedá se dobrat z talonu a není možná žádná akce (např. nové rozdání),
-      * hra už nemůže pokračovat.
+      * Je hra uvíznutá, tj. z aktuální pozice už nevede žádná posloupnost
+      * tahů k výhře (obdoba DealerScene::isGameLost() z kpat, která se ptá
+      * svého patsolve řešiče, ne jen jestli existuje jeden tah)? Hra sama
+      * definuje `isLost`, pokud umí poznat konkrétní prohranou pozici
+      * (např. Pyramids); jinak se prohledá dosažitelný stavový prostor
+      * (viz engine/solver.js) — jednotahová heuristika (jako u tlačítka Tip)
+      * by zbytečně přeskakovala tahy, co „nevypadají užitečně“, ale přitom
+      * mohou být nutné k odemčení výhry.
       */
      isLost() {
      if (this.won) return false;
      if (this.def.isLost) return !!this.def.isLost(this.state);
-     if (this.hints().length > 0) return false;
-     if (this.canDeal()) return false;
-     if (this.def.actions) {
-         for (const name of Object.keys(this.def.actions)) {
-             if (this.canAction(name)) return false;
-         }
-     }
-     return true;
+     return isDeadEnd(this.def, this.state, this.pileIds);
      }
 
      get canUndo() { return !this.def.noUndo && this.history.canUndo; }
