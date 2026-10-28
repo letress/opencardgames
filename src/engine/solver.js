@@ -33,8 +33,11 @@ import { cloneState } from './state.js';
 // A genuinely dead-end position has very little branching left, so it proves
 // itself in well under this; the budget mostly controls how long a *healthy*
 // mid-game position (which will never find a full win within reach anyway)
-// spends being inconclusive before giving up.
-const DEFAULT_BUDGET = 1200;
+// spends being inconclusive before giving up. 1200 was too low in practice —
+// a real stuck Klondike deal (seed 1147977945, stock cycling forever with no
+// tableau/foundation move left) only proves itself after ~2500 nodes, so it
+// was silently falling into the "inconclusive" bucket and never reported.
+const DEFAULT_BUDGET = 8000;
 
 /** Compact, order-sensitive fingerprint of a state (card identity + face). */
 function stateKey(state, pileIds) {
