@@ -36,11 +36,8 @@ const STRINGS = {
     noMoves: 'No further moves found.',
     askSeed: 'Deal number (positive integer):',
     winTitle: 'Congratulations!',
-    lostTitle: "It's no longer possible to win",
     roundDone: (n, score) => `Round ${n} complete · score: ${score}`,
     allRounds: score => `You completed all rounds. Total score: ${score}.`,
-    stuckInRound: (round, score) =>
-    `It's no longer possible to win. Game over in round ${round}. Total score: ${score}.`,
     won: (n, score) => (score !== null ? `You won. Score: ${score}.` : `You won in ${n} moves.`),
     lost: score =>
     (score !== null
@@ -140,6 +137,7 @@ function onEvent({ type }) {
         clearTimeout(winTimer);
         const dlg = $('win-dialog');
         if (dlg.open) dlg.close();
+        if (stuckNoticeShown) { setStatus(''); stuckNoticeShown = false; }
         lastScore = scoreOf(game);
     }
 
@@ -187,36 +185,49 @@ function roundCleared() {
         winTimer = setTimeout(() => game.nextRound(), NEXT_ROUND_DELAY);
         return;
     }
-    finishGame(true);
+    finishGame();
 }
 
-/** Game over: won (last round cleared) or stuck in any round. */
-function finishGame(won) {
+/** Game over: every round has been won. */
+function finishGame() {
     const def = game.def;
     const score = scoreOf(game);
-    const round = game.state.meta.round ?? 1;
     const multi = !!def.rounds;
 
     over = true;
-    const stats = recordResult(def.id, { won, moves: game.moves, score });
+    const stats = recordResult(def.id, { won: true, moves: game.moves, score });
     clearGame(def.id);
 
     clearTimeout(winTimer);
     winTimer = setTimeout(() => showDialog({
-        title: won ? STRINGS.winTitle : STRINGS.lostTitle,
-        text: multi
-        ? (won ? STRINGS.allRounds(score) : STRINGS.stuckInRound(round, score))
-        : (won ? STRINGS.won(game.moves, score) : STRINGS.lost(score)),
-                                           stats: STRINGS.stats(stats),
-    }), won ? 1400 : 700);
+        title: STRINGS.winTitle,
+        text: multi ? STRINGS.allRounds(score) : STRINGS.won(game.moves, score),
+        stats: STRINGS.stats(stats),
+    }), 1400);
 }
 
-/** Ends the game once it's no longer possible to win (Game.isLost — see engine/game.js). */
+let stuckNoticeShown = false;   // so we only ever clear a status message we put up ourselves
+
+/**
+ * Shows (or clears) a quiet note once the position can no longer be won
+ * (Game.isLost — see engine/game.js). Unlike an actual win, this isn't
+ * treated as the end of the game: undo stays available and nothing is
+ * recorded yet, so the player can back up and try a different line. If
+ * they instead move on (new deal, another game), finalizeCurrent() records
+ * the abandoned game as a loss.
+ */
 function checkLost() {
-    // a move can clear the board (win) before Game.won is updated; never call that "stuck"
-    if (over || pendingNext || game.won || game.def.isWon(game.state)) return;
-    if (!game.isLost()) return;
-    finishGame(false);
+    const stuck = !over && !pendingNext && !game.won
+    && !game.def.isWon(game.state)   // a move can clear the board before Game.won catches up
+    && game.isLost();
+
+    if (stuck) {
+        setStatus(STRINGS.lost(scoreOf(game)), { sticky: true });
+        stuckNoticeShown = true;
+    } else if (stuckNoticeShown) {
+        setStatus('');
+        stuckNoticeShown = false;
+    }
 }
 
 const runWhenIdle = typeof requestIdleCallback === 'function'
@@ -295,9 +306,11 @@ function updateUi() {
     $('stats').textContent = STRINGS.stats(getStats(def.id));
 }
 
-function setStatus(text) {
+function setStatus(text, { sticky = false } = {}) {
     $('status').textContent = text;
-    if (text) setTimeout(() => { if ($('status').textContent === text) $('status').textContent = ''; }, 2500);
+    if (text && !sticky) {
+        setTimeout(() => { if ($('status').textContent === text) $('status').textContent = ''; }, 2500);
+    }
 }
 
 function flash(el) {
