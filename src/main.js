@@ -218,7 +218,7 @@ function finishGame() {
  * locking in the current score instead of forcing the player to keep going.
  */
 function endGame() {
-    if (!game.def.scoring || game.won || over || pendingNext) return;
+    if (!game.def.scoring || game.def.noEndEarly || game.won || over || pendingNext) return;
     const score = scoreOf(game);
 
     over = true;
@@ -325,7 +325,7 @@ function updateUi() {
 
     // lets the player lock in their score instead of being forced to keep playing
     // (e.g. Pyramids, where the wild Joker is otherwise always a "move")
-    $('btn-end').hidden = !def.scoring;
+    $('btn-end').hidden = !def.scoring || !!def.noEndEarly;
     $('btn-end').disabled = game.won || over || pendingNext;
 
     // auto-collecting onto foundations only makes sense for games that support it

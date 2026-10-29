@@ -84,10 +84,13 @@ export function createSpider(suitCount) {
     TABLEAU.forEach((id, i) => {
         layout[id] = {
             x: DIST_X * i,
-            y: 1.2,
+            y: 1.05,
             fan: 'down',
-            bottomPadding: 1.75,
-            depth: { down: 5, up: 10 },
+            bottomPadding: 1.4,
+            // sized for a typical column (4 face-down + ~6 face-up), not the rare
+            // worst case — an unusually deep column just compresses further on
+            // its own (see #pilePositions) instead of shrinking every card
+            depth: { down: 4, up: 6 },
             type: 'tableau',
         };
     });

@@ -124,6 +124,8 @@ const tripeaks = {
     name: 'Tri Peaks',
     layout,
     scoring: true,                      // shows the score indicator
+    // unlike Pyramids there's no forced-Joker trap here, so voluntary early ending isn't offered
+    noEndEarly: true,
 
     deal(state, rng) {
         const cards = shuffle(makeDeck(1), rng);
