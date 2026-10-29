@@ -36,8 +36,10 @@ const STRINGS = {
     noMoves: 'No further moves found.',
     askSeed: 'Deal number (positive integer):',
     winTitle: 'Congratulations!',
+    endedTitle: 'Game Ended',
     roundDone: (n, score) => `Round ${n} complete · score: ${score}`,
     allRounds: score => `You completed all rounds. Total score: ${score}.`,
+    ended: score => `You ended the game. Final score: ${score}.`,
     won: (n, score) => (score !== null ? `You won. Score: ${score}.` : `You won in ${n} moves.`),
     lost: score =>
     (score !== null
@@ -206,6 +208,26 @@ function finishGame() {
     }), 1400);
 }
 
+/**
+ * Voluntarily ends a scoring game right now (e.g. Pyramids, where playing on
+ * might otherwise mean spending the Joker just to confirm nothing's left),
+ * locking in the current score instead of forcing the player to keep going.
+ */
+function endGame() {
+    if (!game.def.scoring || game.won || over || pendingNext) return;
+    const score = scoreOf(game);
+
+    over = true;
+    clearHints();
+    if (stuckNoticeShown) { setStatus(''); stuckNoticeShown = false; }
+    const stats = recordResult(game.def.id, { won: false, moves: game.moves, score, finished: true });
+    clearGame(game.def.id);
+
+    clearTimeout(winTimer);
+    showDialog({ title: STRINGS.endedTitle, text: STRINGS.ended(score), stats: STRINGS.stats(stats) });
+    updateUi();
+}
+
 let stuckNoticeShown = false;   // so we only ever clear a status message we put up ourselves
 
 /**
@@ -296,6 +318,11 @@ function updateUi() {
     if (hasRedeal) {
         $('btn-redeal').title = `${Math.max(0, 3 - (game.state.meta.deals ?? 3))}×`;
     }
+
+    // lets the player lock in their score instead of being forced to keep playing
+    // (e.g. Pyramids, where the wild Joker is otherwise always a "move")
+    $('btn-end').hidden = !def.scoring;
+    $('btn-end').disabled = game.won || over || pendingNext;
 
     // auto-collecting onto foundations only makes sense for games that support it
     const hasDrop = !!def.dropCandidates;
@@ -456,6 +483,7 @@ function init() {
     $('btn-redo').addEventListener('click', () => game.redo());
     $('btn-hint').addEventListener('click', showHint);
     $('btn-redeal').addEventListener('click', () => game.action('redeal'));
+    $('btn-end').addEventListener('click', endGame);
     $('btn-rules').addEventListener('click', showRules);
     $('rules-close').addEventListener('click', () => $('rules-dialog').close());
     $('opt-autodrop').addEventListener('change', e => {
