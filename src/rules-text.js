@@ -33,6 +33,30 @@ const klondikeCommon = draw => [
     { p: 'All 52 cards end up on the foundations.' },
 ];
 
+const spiderCommon = suits => [
+    { p: 'Clear all 104 cards (two decks) off the table by building complete King-to-Ace runs, one suit at a time.' },
+    { h: 'Setup' },
+    { p: 'Ten columns, dealt from a shuffled two-deck shoe: the first four columns get 5 cards, the rest get 4, all face down except the top card of each column.' },
+    { h: 'Tableau' },
+    {
+        p: 'Drag any card (and anything stacked on it) onto a card exactly one rank higher — suit doesn\'t matter for placing a card. '
+        + 'But you can only pick up and move several cards together if they already form an unbroken same-suit run in descending order '
+        + '(for example 9♠-8♠-7♠); otherwise only the single top card can move. An empty column accepts any card or run.',
+    },
+    { h: 'Stock' },
+    { p: 'Click the stock to deal one new card face up onto every column — there are 5 such deals in the stock, 50 cards in total.' },
+    { h: 'Completing a suit' },
+    { p: 'Whenever a column holds a complete King-down-to-Ace run of one suit, face up, it\'s swept off the table automatically and counted as done — no need to drag it anywhere.' },
+    { h: 'Suits in play' },
+    { p: suits === 1
+      ? 'Easiest variant: the whole shoe is a single suit (Spades), so any card can legally follow any other — only the sequencing rule for picking up multiple cards together still applies.'
+      : suits === 2
+      ? 'Medium variant: two suits (Hearts and Spades), each appearing four times across the two decks.'
+      : 'Hardest variant: all four suits, exactly as in a normal double deck — matching suits for a movable run are the hardest to line up.' },
+    { h: 'Win' },
+    { p: 'All 104 cards have been swept into 8 completed runs.' },
+];
+
 export const RULES = {
     klondike: { name: 'Klondike (Draw 1)', blocks: klondikeCommon(1) },
     klondike3: { name: 'Klondike (Draw 3)', blocks: klondikeCommon(3) },
@@ -104,6 +128,10 @@ export const RULES = {
             { p: 'All 52 cards end up on the foundations.' },
         ],
     },
+
+    spider1: { name: 'Spider (1 Suit)', blocks: spiderCommon(1) },
+    spider2: { name: 'Spider (2 Suit)', blocks: spiderCommon(2) },
+    spider4: { name: 'Spider (4 Suit)', blocks: spiderCommon(4) },
 
     pyramids: {
         name: 'Pyramids',
