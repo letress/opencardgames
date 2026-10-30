@@ -25,6 +25,7 @@ import sabine from './games/sabine.js';
 import pyramids from './games/pyramids.js';
 import tripeaks from './games/tripeaks.js';
 import { spiderOneSuit, spiderTwoSuit, spiderFourSuit } from './games/spider.js';
+import castle from './games/castle.js';
 import { RULES } from './rules-text.js';
 
 // applied as early as possible, before the first card paints, to avoid a flash of the wrong theme
@@ -55,7 +56,7 @@ const STRINGS = {
 
 const GAMES = [
     klondikeDraw1, klondikeDraw3, grandfather, fortyeight, victorian, sabine,
-    spiderOneSuit, spiderTwoSuit, spiderFourSuit, pyramids, tripeaks,
+    spiderOneSuit, spiderTwoSuit, spiderFourSuit, castle, pyramids, tripeaks,
 ];
 const byId = id => GAMES.find(g => g.id === id) || GAMES[0];
 const $ = id => document.getElementById(id);

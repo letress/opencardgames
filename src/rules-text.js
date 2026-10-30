@@ -133,6 +133,23 @@ export const RULES = {
     spider2: { name: 'Spider (2 Suit)', blocks: spiderCommon(2) },
     spider4: { name: 'Spider (4 Suit)', blocks: spiderCommon(4) },
 
+    castle: {
+        name: 'Castle',
+        blocks: [
+            { p: 'Build all four foundations up in suit, from the Ace to the King. There is no stock — every card is in play from the start.' },
+            { h: 'Setup' },
+            { p: 'The four Aces start already on their foundations. The other 48 cards are dealt face up into eight columns, six cards each.' },
+            { h: 'Tableau' },
+            {
+                p: 'Columns build downward by rank alone — suit and colour don\'t matter, so any 9 can hold any 8. '
+                + 'A run of consecutive descending cards can be moved together, but only up to a limit: with no empty columns you can only move '
+                + 'one card at a time, and each additional empty column doubles how many you can carry in one move. An empty column accepts any card.',
+            },
+            { h: 'Win' },
+            { p: 'All 52 cards end up on the foundations.' },
+        ],
+    },
+
     pyramids: {
         name: 'Pyramids',
         blocks: [
