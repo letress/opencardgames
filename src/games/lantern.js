@@ -1,6 +1,6 @@
 /*
  * kpat-web – webová verze KPatience (kpat)
- * Hra Echoes: původní autorská hra autorů kpat-web (není převzata z KDE KPatience).
+ * Hra Lantern: původní autorská hra autorů kpat-web (není převzata z KDE KPatience).
  *
  * Tento program je svobodný software; můžete jej šířit a/nebo upravovat
  * podle podmínek GNU General Public License, vydané Free Software Foundation,
@@ -9,34 +9,31 @@
  */
 
 import { makeDeck, shuffle } from '../engine/state.js';
-import { isRed } from '../engine/rules.js';
 
 const ACE_KING_ADJACENT = true;   // eso navazuje na krále (… Q, K, A, 2 …)
 const STEP_POINTS = 10;           // 1. karta série 10, 2. karta 20, 3. karta 30 …
-const CLEAR_BONUS = 100;          // bonus za úplné vyčištění diamantu (výhra)
-const ECHO_BONUS = 15;            // bonus za kartu, kterou hráč už znal z ozvěny
+const CLEAR_BONUS = 100;          // bonus za úplné vyčištění pyramidy (výhra)
+const ROW_CLEAR_BONUS = 20;       // bonus za vyklizení celé řady
+const TORCH_COST = 8;             // kolik bodů stojí nahlédnutí pod zakrytou kartu
+const PEEK_PAYOFF = 15;           // bonus, když se zaplacené nahlédnutí later vyplatí
+const REDEALS = 2;                // kolikrát smí talon znovu naskládat odhozené karty
 
 const UNIT_X = 1.03;
-const ROW_Y = 0.46;   // tolik, aby zůstal vidět horní okraj zakryté karty (ozvěny), ale ne víc
+const ROW_Y = 0.55;
 const Z_PER_ROW = 20;
 
-/**
- * Tvar diamantu: devět řad širokých 1,2,3,4,5,4,3,2,1 — jedna velká pyramida
- * nahoru (k vrcholu) a její zrcadlový obraz dolů (ke druhému vrcholu). Prostřední
- * řada (šířka 5) nemá nic, co by ji zakrývalo, takže je odkrytá hned od začátku;
- * odkrývání pak postupuje od středu k oběma hrotům, podobně jako tri-peaks.
- */
-const MID = 4;
-const WIDTHS = [1, 2, 3, 4, 5, 4, 3, 2, 1];
-const CENTER = 2;   // nejširší řada (5 karet) zabírá x = 0..4, střed na 2
+// Klasický trojúhelník: řady 1,2,3,4,5,6,7 karet (28 celkem). Vrchol je
+// nejhlouběji skrytý, základna (nejširší řada) je odkrytá hned od začátku.
+const WIDTHS = [1, 2, 3, 4, 5, 6, 7];
+const CENTER = 3;   // nejširší řada (7 karet) zabírá x = 0..6, střed na 3
 
-/** Karty řady o dané šířce, vystředěné kolem CENTER (odstup 1, půlkrokový posun mezi sousedními řadami). */
 function centeredXs(width) {
     const half = (width - 1) / 2;
     return Array.from({ length: width }, (_, k) => CENTER - half + k);
 }
 
-const ROWS = WIDTHS.map((w, r) => ({ ids: centeredXs(w).map((_, k) => `d${r}c${k}`), xs: centeredXs(w) }));
+const ROWS = WIDTHS.map((w, r) => ({ ids: centeredXs(w).map((_, k) => `p${r}c${k}`), xs: centeredXs(w) }));
+const BASE_ROW = ROWS.length - 1;
 
 const TABLEAU = [];
 const POS = {};
@@ -47,21 +44,13 @@ ROWS.forEach((row, r) => {
     });
 });
 
-// Soused "blíž ke středu" pro danou řadu — tím směrem postupuje odkrývání.
-// Prostřední řada (MID) sousedem nemá: nic ji nezakrývá.
-function middleNeighborRow(r) {
-    if (r === MID) return null;
-    return r < MID ? r + 1 : r - 1;
-}
-
 const COVERS = {};
 for (const id of TABLEAU) {
     const { r, x } = POS[id];
-    const nr = middleNeighborRow(r);
-    COVERS[id] = nr === null
+    COVERS[id] = r === BASE_ROW
     ? []
-    : ROWS[nr].ids
-    .map((id2, k) => ({ id: id2, x2: ROWS[nr].xs[k] }))
+    : ROWS[r + 1].ids
+    .map((id2, k) => ({ id: id2, x2: ROWS[r + 1].xs[k] }))
     .filter(o => Math.abs(o.x2 - x) === 0.5)
     .map(o => o.id);
 }
@@ -74,9 +63,8 @@ function exposed(state, id) {
 }
 
 /**
- * Odhalí nově volné karty tableau. Karta, která už byla lícem nahoru díky
- * ozvěně (viz triggerEcho), dostane při svém skutečném odkrytí bonus — hráč
- * ji už znal předem a teď se mu to vyplatilo.
+ * Odhalí nově volné karty. Karta odhalená dřív za body (viz onClick) dostane
+ * při svém skutečném odkrytí bonus — zaplacené nahlédnutí se vyplatilo.
  */
 function revealExposed(state) {
     const seen = new Set(state.meta.exposedIds);
@@ -87,34 +75,12 @@ function revealExposed(state) {
         if (seen.has(card.id)) continue;
         seen.add(card.id);
         if (card.up) {
-            state.meta.score += ECHO_BONUS;   // ozvěna to prozradila předem
+            state.meta.score += PEEK_PAYOFF;
         } else {
             card.up = true;
         }
     }
     state.meta.exposedIds = [...seen];
-}
-
-/** Dvě karty stejné hodnoty a stejné barvy (♠↔♣ nebo ♥↔♦) jsou vzájemná "ozvěna". */
-function isEchoPair(a, b) {
-    return a.r === b.r && isRed(a.s) === isRed(b.s);
-}
-
-/**
- * Jakmile se karta stane známou (zahraje se na odkládací hromádku, ať už
- * z tableau nebo z balíčku), její ozvěna — pokud ještě leží skrytá v
- * diamantu — se rovnou otočí lícem nahoru. Zůstává na místě a dál zakrytá,
- * dokud na ni nepřijde řada, ale její horní okraj je odteď vidět.
- */
-function triggerEcho(state, card) {
-    for (const id of TABLEAU) {
-        const pile = state.piles[id];
-        const twin = pile[0];
-        if (pile.length && !twin.up && isEchoPair(twin, card)) {
-            twin.up = true;
-            return;
-        }
-    }
 }
 
 /** Sousední hodnoty (na barvě nezáleží). */
@@ -130,29 +96,31 @@ function canPlayOn(top, card) {
 function scorePlay(state) {
     state.meta.streak += 1;
     state.meta.score += STEP_POINTS * state.meta.streak;
-    if (TABLEAU.every(id => state.piles[id].length === 0)) {
-        state.meta.score += CLEAR_BONUS;
-    }
+}
+
+/** Dala karta zahraná z `id` právě poslední chybějící kus své řady? Pokud ano, vyplatí bonus přesně jednou. */
+function maybeRowBonus(state, id) {
+    const { r } = POS[id];
+    const rowIds = ROWS[r].ids;
+    if (!rowIds.every(rid => state.piles[rid].length === 0)) return;
+    if (state.meta.rowBonusGiven.includes(r)) return;
+    state.meta.rowBonusGiven.push(r);
+    state.meta.score += ROW_CLEAR_BONUS;
 }
 
 const layout = {
-    // diamant je mnohem užší než např. tri-peaks — vějíř balíčku proto smí
-    // ukazovat jen pár karet (card-width rozpětí vstupuje i do výpočtu
-    // velikosti karty, ne jen do vykreslení), jinak by zbytečně vynutil
-    // menší karty, nebo by zajel přes odkládací hromádku
     stock: {
-        x: 0.1, y: 0, anchor: 'bottom', fan: 'right-9', spread: 0.25,
+        x: 0.1, y: 0, anchor: 'bottom', fan: 'right-10', spread: 0.25,
         jitter: false, type: 'stock',
     },
-    waste: { x: 3.3, y: 0, anchor: 'bottom', fan: 'none', type: 'waste' },
+    waste: { x: 7.3, y: 0, anchor: 'bottom', fan: 'none', type: 'waste' },
 };
 for (const id of TABLEAU) {
     const { r, x } = POS[id];
-    const dist = Math.abs(r - MID);
     layout[id] = {
         x: x * UNIT_X,
         y: r * ROW_Y,
-        z: (4 - dist) * Z_PER_ROW,
+        z: r * Z_PER_ROW,
         fan: 'none',
         jitter: false,
         noSlot: true,
@@ -160,9 +128,9 @@ for (const id of TABLEAU) {
     };
 }
 
-const echoes = {
-    id: 'echoes',
-    name: 'Echoes',
+const lantern = {
+    id: 'lantern',
+    name: 'Lantern',
     layout,
     scoring: true,
     noEndEarly: true,   // žádný žolík k vynucení — na rozdíl od Pyramids tu není past k obcházení
@@ -185,10 +153,12 @@ const echoes = {
         state.meta.score = 0;
         state.meta.streak = 0;
         state.meta.exposedIds = [];
-        triggerEcho(state, first);
-        revealExposed(state);   // prostřední řada je volná hned od začátku
+        state.meta.rowBonusGiven = [];
+        state.meta.redealsLeft = REDEALS;
+        revealExposed(state);   // základní řada je volná hned od začátku
     },
 
+    // Táhnout (přetažením) lze jen skutečně volnou, odkrytou kartu.
     canDrag(state, pile) {
         return TABLEAU.includes(pile) && exposed(state, pile);
     },
@@ -202,35 +172,52 @@ const echoes = {
         if (TABLEAU.includes(from)) {
             moved[0].up = true;
             scorePlay(state);
-            triggerEcho(state, moved[0]);
+            maybeRowBonus(state, from);
             revealExposed(state);
         }
     },
 
+    // Klik na kartu v pyramidě: odkrytou zahraje na odkládací hromádku; zakrytou,
+    // dosud neznámou (lícem dolů) odhalí za cenu pár bodů — koupené nahlédnutí
+    // pod kartu, která ještě leží zavalená a nejde zahrát, ale hráč už ví, co tam je.
     onClick(state, pile) {
         const { stock, waste } = state.piles;
 
         if (pile === 'stock') {
-            if (stock.length === 0) return false;
+            if (stock.length === 0) {
+                if (state.meta.redealsLeft <= 0) return false;
+                state.meta.redealsLeft -= 1;
+                while (waste.length > 0) {
+                    const c = waste.pop();
+                    c.up = false;
+                    stock.push(c);
+                }
+            }
             const c = stock.pop();
             c.up = true;
             waste.push(c);
             state.meta.streak = 0;
-            triggerEcho(state, c);
-            revealExposed(state);
             return true;
         }
 
         if (TABLEAU.includes(pile)) {
             const p = state.piles[pile];
-            if (p.length === 0 || !exposed(state, pile)) return false;
-            const card = lastOf(p);
+            if (p.length === 0) return false;
+            const card = p[0];
+
+            if (!exposed(state, pile)) {
+                if (card.up) return false;          // už odhaleno dřív, není co platit
+                card.up = true;
+                state.meta.score -= TORCH_COST;
+                return true;
+            }
+
             if (!canPlayOn(lastOf(waste), card)) return false;
             p.pop();
             card.up = true;
             waste.push(card);
             scorePlay(state);
-            triggerEcho(state, card);
+            maybeRowBonus(state, pile);
             revealExposed(state);
             return true;
         }
@@ -238,7 +225,7 @@ const echoes = {
     },
 
     canDeal(state) {
-        return state.piles.stock.length > 0;
+        return state.piles.stock.length > 0 || state.meta.redealsLeft > 0;
     },
 
     isWon(state) {
@@ -247,7 +234,7 @@ const echoes = {
 
     isLost(state) {
         if (TABLEAU.every(id => state.piles[id].length === 0)) return false;
-        if (state.piles.stock.length > 0) return false;
+        if (state.piles.stock.length > 0 || state.meta.redealsLeft > 0) return false;
         const top = lastOf(state.piles.waste);
         return !TABLEAU.some(id =>
         state.piles[id].length > 0
@@ -257,4 +244,4 @@ const echoes = {
     },
 };
 
-export default echoes;
+export default lantern;
