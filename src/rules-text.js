@@ -195,4 +195,38 @@ export const RULES = {
             { p: 'The game ends once the stock is empty and no exposed card can be played on the waste pile.' },
         ],
     },
+
+    echoes: {
+        name: 'Echoes',
+        blocks: [
+            { p: 'Clear the diamond-shaped tableau of all 25 cards in a single round.' },
+            { h: 'Setup' },
+            {
+                p: 'Twenty-five cards form a diamond: a small pyramid pointing up, mirrored by one pointing down, meeting at a wide middle row of 5. '
+                + 'Only that middle row starts face up — everything else starts face down.',
+            },
+            { h: 'Play' },
+            {
+                p: 'Click an exposed, face-up card (or drag it) onto the waste pile if its rank is exactly one away from the waste\'s top card — suit doesn\'t matter, '
+                + 'and the King and Ace count as neighbours. A card becomes exposed, and flips face up, once nothing rests on it any more — clearing proceeds outward '
+                + 'from the middle row toward the two tips.',
+            },
+            { p: 'Click the stock to draw a new card onto the waste pile — this resets your current streak (there\'s no draw cost).' },
+            { h: 'Echoes' },
+            {
+                p: 'Every card has exactly one echo somewhere in the diamond: the other card of the same rank and the same colour '
+                + '(for example the two black 7s, or the two red Queens). The moment a card becomes known — played to the waste, or drawn from the stock — '
+                + 'its echo flips face up immediately too, even if it\'s still buried under other cards. You won\'t be able to play it yet, but you\'ll know '
+                + 'exactly what\'s waiting there.',
+            },
+            { h: 'Scoring' },
+            { ul: [
+                'Each card played in an unbroken streak is worth more than the last: 10, 20, 30, …',
+                'A card you already knew about from its echo earns a 15-point bonus the moment it finally becomes exposed.',
+                'Clearing the whole diamond earns a 100-point bonus.',
+            ] },
+            { h: 'End of game' },
+            { p: 'The game ends once the stock is empty and no exposed card can be played on the waste pile.' },
+        ],
+    },
 };
