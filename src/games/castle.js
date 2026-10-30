@@ -55,6 +55,26 @@ function canPutStore(state, cards, toPile) {
     return cards[0].r === dest[dest.length - 1].r - 1;
 }
 
+/**
+ * Bezpečné odložení na základnu: protože v tableau je hodnota karty jediné,
+ * na čem záleží (barva/barevnost ne), kartu hodnoty r smí hostit libovolná
+ * ze čtyř karet hodnoty r+1 (jakékoli barvy). Odložení je tedy riskantní jen
+ * tehdy, když po něm nezbude v tableau žádná jiná karta stejné hodnoty, a
+ * přitom tam ještě čeká karta o hodnotu nižší, která by jinak přišla o domov.
+ */
+function isSafeToDrop(state, card) {
+    if (card.r <= 2) return true;
+    let sameRankElsewhere = -1;   // odečte kartu samotnou
+    let lowerRankLeft = 0;
+    for (const id of TABLEAU) {
+        for (const c of state.piles[id]) {
+            if (c.r === card.r) sameRankElsewhere++;
+            else if (c.r === card.r - 1) lowerRankLeft++;
+        }
+    }
+    return lowerRankLeft === 0 || sameRankElsewhere > 0;
+}
+
 const NARROW_BREAKPOINT = 700;   // stejný práh jako obecný "compact" režim v app.css
 
 /**
@@ -141,6 +161,21 @@ const castle = {
         const card = p[idx];
         const f = `f${card.s}`;
         return canGoToSuitFoundation(card, state.piles[f]) ? f : null;
+    },
+
+    // Kandidáti pro automatické odkládání na základny (zapínatelné v menu)
+    dropCandidates(state) {
+        const out = [];
+        for (const id of TABLEAU) {
+            const p = state.piles[id];
+            if (!p.length) continue;
+            const idx = p.length - 1;
+            const card = p[idx];
+            if (!isSafeToDrop(state, card)) continue;
+            const to = `f${card.s}`;
+            if (canGoToSuitFoundation(card, state.piles[to])) out.push({ from: id, idx, to });
+        }
+        return out.sort((a, b) => state.piles[a.from][a.idx].r - state.piles[b.from][b.idx].r);
     },
 
     isWon(state) {
