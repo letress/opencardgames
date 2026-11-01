@@ -64,20 +64,20 @@
    the in-app theme toggle ([data-theme="dark"]) regardless of the OS setting */
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-        --ink: #c7c7cc;
-        --red: #e0615a;
+        --ink: #000000;
+        --red: #ff453a;
         --joker: #c68cf0;
         --card-bg: #3a3a40;
-        --card-border: rgba(255, 255, 255, .38);
+        --card-border: rgba(0, 0, 0, .55);
     }
 }
 
 :root[data-theme="dark"] {
-    --ink: #c7c7cc;
-    --red: #e0615a;
+    --ink: #000000;
+    --red: #ff453a;
     --joker: #c68cf0;
     --card-bg: #3a3a40;
-    --card-border: rgba(255, 255, 255, .38);
+    --card-border: rgba(0, 0, 0, .55);
 }
 
 :root[data-theme="light"] {
