@@ -69,6 +69,9 @@
         --joker: #c68cf0;
         --card-bg: #3a3a40;
         --card-border: rgba(255, 255, 255, .38);
+        /* the light mode rim (#f0f0f3) reads as a near-white glow against a dark
+           table; a muted pewter keeps the same elegant edge without the glare */
+        --card-back-rim: #86868c;
     }
 }
 
@@ -78,6 +81,7 @@
     --joker: #c68cf0;
     --card-bg: #3a3a40;
     --card-border: rgba(255, 255, 255, .38);
+    --card-back-rim: #86868c;
 }
 
 :root[data-theme="light"] {
