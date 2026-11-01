@@ -126,6 +126,7 @@ const tripeaks = {
     scoring: true,                      // shows the score indicator
     // unlike Pyramids there's no forced-Joker trap here, so voluntary early ending isn't offered
     noEndEarly: true,
+    noUndo: true,                       // no stepping back through a scored run
 
     deal(state, rng) {
         const cards = shuffle(makeDeck(1), rng);

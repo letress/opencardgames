@@ -40,6 +40,7 @@ const STRINGS = {
     askSeed: 'Deal number (positive integer):',
     winTitle: 'Congratulations!',
     endedTitle: 'Game Ended',
+    lostTitle: 'Game Over',
     roundDone: (n, score) => `Round ${n} complete · score: ${score}`,
     allRounds: score => `You completed all rounds. Total score: ${score}.`,
     ended: score => `You ended the game. Final score: ${score}.`,
@@ -48,6 +49,10 @@ const STRINGS = {
     (score !== null
      ? `It's no longer possible to win. Score: ${score}.`
      : "It's no longer possible to win."),
+    lostGame: score =>
+    (score !== null
+     ? `No more moves left. Final score: ${score}.`
+     : 'No more moves left.'),
     stats: s =>
     `Played: ${s.played} · Won: ${s.won}` +
     (s.played ? ` (${Math.round((100 * s.won) / s.played)}%)` : '') +
@@ -215,6 +220,24 @@ function finishGame() {
 }
 
 /**
+ * Game over, no win: used only for games that give the player no other way
+ * out once stuck (no undo to try a different line, no voluntary End Game
+ * button) — without this they'd be staring at a dead board with nothing to
+ * click. Games that still offer one of those escape hatches keep the quiet
+ * status note instead (see checkLost).
+ */
+function finishLost() {
+    const score = scoreOf(game);
+
+    over = true;
+    const stats = recordResult(game.def.id, { won: false, moves: game.moves, score, finished: true });
+    clearGame(game.def.id);
+
+    showDialog({ title: STRINGS.lostTitle, text: STRINGS.lostGame(score), stats: STRINGS.stats(stats) });
+    updateUi();
+}
+
+/**
  * Voluntarily ends a scoring game right now (e.g. Pyramids, where playing on
  * might otherwise mean spending the Joker just to confirm nothing's left),
  * locking in the current score instead of forcing the player to keep going.
@@ -243,6 +266,11 @@ let stuckNoticeShown = false;   // so we only ever clear a status message we put
  * recorded yet, so the player can back up and try a different line. If
  * they instead move on (new deal, another game), finalizeCurrent() records
  * the abandoned game as a loss.
+ *
+ * A game with neither undo nor a voluntary End Game button (e.g. Tri Peaks)
+ * gives the player no way to act on that note, so for those it goes
+ * straight to a real Game Over instead of a message nobody can do anything
+ * about.
  */
 function checkLost() {
     const stuck = !over && !pendingNext && !game.won
@@ -250,6 +278,10 @@ function checkLost() {
     && game.isLost();
 
     if (stuck) {
+        if (game.def.noUndo && game.def.noEndEarly) {
+            finishLost();
+            return;
+        }
         setStatus(STRINGS.lost(scoreOf(game)), { sticky: true });
         stuckNoticeShown = true;
     } else if (stuckNoticeShown) {
