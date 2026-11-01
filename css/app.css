@@ -544,6 +544,13 @@ dialog button:active {
     z-index: calc(var(--z, 1) + 1000);
     box-shadow: 0 10px 22px rgba(0, 0, 0, .32), 0 2px 6px rgba(0, 0, 0, .2);
 }
+/* ...except a card that was buried when the celebration started (e.g. deep in
+   the waste pile): it still starts the win animation stacked right under its
+   neighbours, so giving it a shadow too piles them all into one dark blob at
+   the pile's origin until they've had a moment to fan out. */
+.card.buried.moving {
+    box-shadow: none;
+}
 .card.dragging {
     z-index: calc(var(--z, 1) + 10000);
     cursor: grabbing;
