@@ -256,7 +256,10 @@ export function celebrate(els, area) {
         const dx = (Math.random() - 0.5) * area.w * 1.6;
         const dy = area.h + 200 + Math.random() * 200;
         const rot = (Math.random() - 0.5) * 720;
-        el.classList.add('moving');
+        // a lighter shadow than a single lifted card (.moving) gets: dozens of these
+        // fly at once and often overlap mid-flight, and heavy shadows stacked that
+        // many times over turn into one dark blob instead of reading as individual cards
+        el.classList.add('flying');
         anims.push(
             el.animate(
                 [
@@ -273,7 +276,7 @@ export function celebrate(els, area) {
         promise,
         cancel() {
             anims.forEach(a => a.cancel());
-            els.forEach(el => el.classList.remove('moving'));
+            els.forEach(el => el.classList.remove('flying'));
         },
     };
 }
