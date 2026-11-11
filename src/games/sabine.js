@@ -59,22 +59,6 @@ function canPlace(run, dest) {
     return true;
 }
 
-function foundationRank(state, suit) {
-    for (const f of FOUNDATIONS) {
-        const p = state.piles[f];
-        if (p.length && p[0].s === suit) return p[p.length - 1].r;
-    }
-    return 0;
-}
-
-/** Opatrné odkládání: esa a dvojky vždy, jinak když ostatní barvy nezaostávají o víc než dvě. */
-function isSafeToDrop(state, card) {
-    if (card.r <= 2) return true;
-    return [0, 1, 2, 3]
-    .filter(s => s !== card.s)
-    .every(s => foundationRank(state, s) >= card.r - 2);
-}
-
 const layout = {
     stock: { x: 0, y: 0, fan: 'none', type: 'stock' },
     waste: { x: DIST_X, y: 0, fan: 'none', type: 'waste' },
@@ -151,7 +135,9 @@ const sabine = {
         return FOUNDATIONS.find(f => canGoToSuitFoundation(card, state.piles[f])) || null;
     },
 
-    // Kandidáti pro automatické odkládání na základny
+    // Kandidáti pro automatické odkládání na základny: cokoli, co lze hned
+    // položit, bez čekání na „bezpečnější“ okamžik — hráč o žádnou kartu
+    // v tableau nepřijde, protože na základnu z tableau jde jen vrchní karta.
     dropCandidates(state) {
         const out = [];
         const sources = [];
@@ -163,7 +149,6 @@ const sabine = {
         }
         for (const s of sources) {
             const card = state.piles[s.from][s.idx];
-            if (!isSafeToDrop(state, card)) continue;
             const to = FOUNDATIONS.find(f => canGoToSuitFoundation(card, state.piles[f]));
             if (to) out.push({ ...s, to });
         }
