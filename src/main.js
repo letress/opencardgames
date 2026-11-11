@@ -33,6 +33,7 @@ import { RULES } from './rules-text.js';
 document.documentElement.dataset.theme = getSettings().theme;
 
 const NEXT_ROUND_DELAY = 1500;   // pause between a finished round and dealing the next one (ms)
+const LOST_DIALOG_DELAY = 1400;  // lets the player see the move that ended it before Game Over covers the board (ms)
 
 /* All interface text lives here (easy to localize). */
 const STRINGS = {
@@ -225,6 +226,11 @@ function finishGame() {
  * button) — without this they'd be staring at a dead board with nothing to
  * click. Games that still offer one of those escape hatches keep the quiet
  * status note instead (see checkLost).
+ *
+ * The dialog itself is delayed: this typically fires right as the player's
+ * own move (e.g. the last card played onto the waste in Tri Peaks) is what
+ * made the position unwinnable, so popping Game Over up instantly would
+ * cover that card before they even get to see what it was.
  */
 function finishLost() {
     const score = scoreOf(game);
@@ -232,9 +238,12 @@ function finishLost() {
     over = true;
     const stats = recordResult(game.def.id, { won: false, moves: game.moves, score, finished: true });
     clearGame(game.def.id);
-
-    showDialog({ title: STRINGS.lostTitle, text: STRINGS.lostGame(score), stats: STRINGS.stats(stats) });
     updateUi();
+
+    clearTimeout(winTimer);
+    winTimer = setTimeout(() => showDialog({
+        title: STRINGS.lostTitle, text: STRINGS.lostGame(score), stats: STRINGS.stats(stats),
+    }), LOST_DIALOG_DELAY);
 }
 
 /**
