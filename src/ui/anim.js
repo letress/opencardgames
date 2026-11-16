@@ -96,7 +96,7 @@ export function cancelAnim(el) {
         clearTimeout(el._elevT);
         el._elevT = null;
     }
-    el.classList.remove('moving');
+    el.classList.remove('moving', 'flying');
 }
 
 /**
@@ -108,8 +108,10 @@ export function cancelAnim(el) {
  *   delay     ms
  *   flipTo    true = karta se otáčí lícem nahoru, false = rubem nahoru, null = bez otočení
  *   lift      lehké zvětšení při delším přesunu (výchozí true)
- *   elevate   karta se při pohybu zvedne nad ostatní (stín + vyšší z-index); false pro
- *             pouhou změnu odsazení ve stejné hromádce
+ *   elevate   karta se při pohybu zvedne nad ostatní (stín + vyšší z-index): true pro
+ *             běžný (silnější) stín, 'light' pro slabší stín (hodně karet najednou
+ *             ze stejného místa, např. rozdání — jinak se jejich stíny sečtou do jedné
+ *             tmavé skvrny), false pro pouhou změnu odsazení ve stejné hromádce
  *   easing    vlastní křivka (výchozí pružina)
  *   speed     zrychlení animace (1 = běžná rychlost)
  *   from      předem načtená viditelná poloha {x, y} (viz visualPos)
@@ -187,12 +189,13 @@ export function animateCard(
     if (!anims.length) return Promise.resolve();
 
     el._anims = anims;
-    if (elevate) {
+    const elevateCls = elevate === 'light' ? 'flying' : elevate ? 'moving' : null;
+    if (elevateCls) {
         // karta je nad ostatními jen po dobu skutečného pohybu, ne po celý pružinový dojezd
-        el.classList.add('moving');
+        el.classList.add(elevateCls);
         el._elevT = setTimeout(() => {
             el._elevT = null;
-            el.classList.remove('moving');
+            el.classList.remove(elevateCls);
         }, wait + dur * ELEVATE_RELEASE);
     }
 
@@ -203,7 +206,7 @@ export function animateCard(
                 clearTimeout(el._elevT);
                 el._elevT = null;
             }
-            el.classList.remove('moving');
+            el.classList.remove('moving', 'flying');
         }
     });
 }

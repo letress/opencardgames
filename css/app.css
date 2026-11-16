@@ -403,7 +403,10 @@ dialog button:active {
     z-index: var(--z, 1);
     border-radius: calc(var(--cw) * .1);
     perspective: calc(var(--cw) * 5);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 16px rgba(0, 0, 0, .18);
+    /* negative spread pulls the soft ambient shadow in from the sides before
+       blurring it, so cards sitting edge to edge (e.g. a peak's base row)
+       each keep their own shadow instead of blurring into one shared band */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 14px -6px rgba(0, 0, 0, .22);
     will-change: translate, scale;
     touch-action: none;
     user-select: none;
@@ -460,9 +463,14 @@ dialog button:active {
 /* a buried card keeps its own full drop shadow, which is pointless since it's
    hidden under the next card anyway — in a tight stack (e.g. a full foundation
    pile right as you win) those shadows pile up into one heavy, muddy halo.
-   Only the top card needs to look elevated; the rest cast none at all. */
+   Only the top card needs to look elevated; the rest cast none at all.
+   Kept as two zero-strength layers (not "none"/fewer layers) so `box-shadow`
+   still has something to transition *from* the same shape it transitions
+   *to* — a layer-count mismatch is what was leaving it stuck showing the
+   base shadow the whole time a card's buried state changed after its first
+   paint, i.e. most of the time once a game is actually being played. */
 .card.buried {
-    box-shadow: none;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0), 0 0 0 rgba(0, 0, 0, 0);
 }
 
 .card .front {
@@ -544,23 +552,25 @@ dialog button:active {
     z-index: calc(var(--z, 1) + 1000);
     box-shadow: 0 10px 22px rgba(0, 0, 0, .32), 0 2px 6px rgba(0, 0, 0, .2);
 }
-/* win celebration: dozens of cards fly at once, often overlapping mid-flight
-   (especially cards that started right next to or stacked under each other),
-   so each one gets a single soft shadow instead of .moving's heavier double
-   one — stacked many times over, that double shadow turns into a dark blob
-   instead of reading as a shower of individual cards. */
+/* win celebration and mass dealing: many cards move at once, often starting
+   right next to or stacked under each other (all fanning out from one deal
+   origin, or all flying off at once), so each one gets a lighter two-layer
+   shadow instead of .moving's heavier one — stacked many times over, that
+   heavier shadow turns into a dark blob instead of a shower of individual
+   cards. Kept at the same two-layer shape as every other state below, so a
+   transition between any of them has something to interpolate (see .buried). */
 .card.flying {
     z-index: calc(var(--z, 1) + 1000);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, .16);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .16), 0 4px 10px rgba(0, 0, 0, .14);
 }
 .card.buried.flying {
-    box-shadow: none;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0), 0 0 0 rgba(0, 0, 0, 0);
 }
 .card.dragging {
     z-index: calc(var(--z, 1) + 10000);
     cursor: grabbing;
     scale: 1.05;
-    box-shadow: 0 16px 32px rgba(0, 0, 0, .4);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .25), 0 16px 32px rgba(0, 0, 0, .4);
 }
 
 .card.hint { animation: pulse 0.8s ease-in-out 2; }

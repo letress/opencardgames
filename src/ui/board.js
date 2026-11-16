@@ -246,6 +246,7 @@ export class Board {
         duration: 240,
         delay: Math.min(n * 3, 120),
                 lift: false,
+                elevate: 'light',   // všechny karty míří na stejné místo — slabší stín, ať se nesečtou
     })
     );
 
@@ -466,6 +467,7 @@ export class Board {
                     from: { x: from.x, y: from.y },
                     delay: Math.min(n * 12, 700),
                             lift: false,
+                            elevate: 'light',   // všechny karty startují ze stejného místa — ať se stíny nesečtou
                 });
             });
             return;
